@@ -1,0 +1,67 @@
+# AEI Analysis Pipeline Configuration
+
+# Data paths
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  results_dir: "results"
+
+# Data ingestion settings
+ingestion:
+  dataset_name: "Anthropic/EconomicIndex"
+  split: "train"
+  export_formats:
+    - csv
+    - parquet
+
+# Data cleaning settings
+cleaning:
+  missing_value_strategy: "drop"  # Options: drop, impute
+  missing_threshold: 0.5  # Drop columns with > 50% missing
+  standardize_columns: true
+  columns_to_remove: []  # Specify columns to remove
+  one_hot_encode: []  # Columns for one-hot encoding
+  label_encode: []  # Columns for label encoding
+
+# Exploratory analysis settings
+exploratory:
+  compute_gini: true
+  compute_theil: true
+  n_top_groups: 10  # Number of top groups to show in summaries
+  generate_plots: true
+
+# Regression settings
+regression:
+  use_robust_se: true
+  robust_cov_type: "HC3"
+  save_results: true
+
+# Visualization settings
+visualization:
+  figure_dpi: 300
+  figure_format: "png"
+  max_dashboard_records: 10000
+  export_formats:
+    - json
+    - csv
+
+# Example regression specifications (adjust based on actual columns)
+regressions:
+  usage:
+    target: "usage_intensity"
+    features:
+      - "income"
+      - "education_level"
+      - "sector"
+  success:
+    target: "task_success"
+    features:
+      - "occupation_type"
+      - "platform"
+      - "education_level"
+  automation:
+    target: "automation_likelihood"
+    features:
+      - "wage_decile"
+      - "task_type"
+      - "country_income_group"
