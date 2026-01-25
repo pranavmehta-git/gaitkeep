@@ -1,0 +1,40 @@
+{
+  "metadata": {
+    "n_observations": 18872,
+    "generated_at": "2026-01-25",
+    "source": "Platform Task Competition Study (AEI Dataset)"
+  },
+  "regression": {
+    "r_squared": 0.765,
+    "adj_r_squared": 0.765,
+    "n_obs": 18872,
+    "coefficients": {
+      "intercept": -24360,
+      "incumbents_responding": 28.8757,
+      "log_task_id": 5065.2238,
+      "log_incumbents_responding": -3054.2842
+    }
+  },
+  "summary_stats": {
+    "mean_incumbents": 79.43,
+    "median_incumbents": 81.0,
+    "std_incumbents": 39.45,
+    "min_incumbents": 19,
+    "max_incumbents": 349,
+    "cv": 0.497
+  },
+  "task_type_breakdown": {
+    "Core": {
+      "count": 13487,
+      "mean": 75.83,
+      "median": 77.0,
+      "std": 39.64
+    },
+    "Supplemental": {
+      "count": 5385,
+      "mean": 88.44,
+      "median": 87.0,
+      "std": 37.50
+    }
+  }
+}
