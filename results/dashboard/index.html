@@ -5,6 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Competition Paradox | Platform Market Inequality Explorer</title>
 
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Interactive visualization exploring inequality patterns in platform market competition. Discover how competition concentrates across tasks through Lorenz curves, Gini coefficients, and regression analysis.">
+    <meta name="keywords" content="platform economy, gig economy, market inequality, Gini coefficient, Lorenz curve, competition analysis, data visualization">
+    <meta name="author" content="GaitKeep Research">
+
+    <!-- Open Graph / Social Sharing -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="The Competition Paradox | Platform Market Inequality Explorer">
+    <meta property="og:description" content="Interactive visualization exploring inequality patterns in platform market competition data.">
+    <meta property="og:image" content="https://via.placeholder.com/1200x630/FEFDFB/E85D4C?text=Competition+Paradox">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="The Competition Paradox">
+    <meta name="twitter:description" content="How platform markets concentrate opportunity - an interactive data exploration.">
+
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,527 +33,73 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
 
     <style>
-        :root {
-            /* Primary palette */
-            --bg-primary: #FEFDFB;
-            --bg-secondary: #F8F6F3;
-            --text-primary: #1A1A1A;
-            --text-secondary: #6B6B6B;
-            --text-muted: #999999;
-
-            /* Data colors */
-            --equality-line: #C4C4C4;
-            --lorenz-start: #4A90D9;
-            --lorenz-end: #E85D4C;
-            --gini-fill: rgba(232, 93, 76, 0.15);
-
-            /* Accents */
-            --highlight: #FFD166;
-            --annotation: #2D3436;
-            --success: #27AE60;
-            --warning: #F39C12;
-
-            /* Spacing */
-            --space-xs: 0.25rem;
-            --space-sm: 0.5rem;
-            --space-md: 1rem;
-            --space-lg: 2rem;
-            --space-xl: 3rem;
-            --space-2xl: 4rem;
-
-            /* Transitions */
-            --transition-fast: 150ms ease-out;
-            --transition-medium: 300ms ease-out;
-            --transition-slow: 400ms ease-out;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        html {
-            font-size: 16px;
-            scroll-behavior: smooth;
-        }
-
-        body {
-            font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            line-height: 1.6;
-            min-height: 100vh;
-        }
-
-        /* Typography */
-        h1, h2, h3 {
-            font-family: 'Libre Baskerville', Georgia, serif;
-            font-weight: 700;
-            line-height: 1.3;
-        }
-
-        h1 {
-            font-size: clamp(2rem, 5vw, 3rem);
-            margin-bottom: var(--space-sm);
-        }
-
-        h2 {
-            font-size: clamp(1.25rem, 3vw, 1.75rem);
-            margin-bottom: var(--space-md);
-        }
-
-        h3 {
-            font-size: 1.1rem;
-            margin-bottom: var(--space-sm);
-        }
-
-        .subtitle {
-            font-size: clamp(1rem, 2vw, 1.25rem);
-            color: var(--text-secondary);
-            font-weight: 400;
-            margin-bottom: var(--space-lg);
-        }
-
-        .mono {
-            font-family: 'IBM Plex Mono', monospace;
-        }
-
-        /* Layout */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: var(--space-lg);
-        }
-
-        header {
-            text-align: center;
-            padding: var(--space-2xl) var(--space-lg);
-            border-bottom: 1px solid var(--bg-secondary);
-        }
-
-        .grid {
-            display: grid;
-            gap: var(--space-xl);
-        }
-
-        .grid-2 {
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        }
-
-        .grid-3 {
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        }
-
-        section {
-            padding: var(--space-xl) 0;
-        }
-
-        /* Cards */
-        .card {
-            background: white;
-            border-radius: 8px;
-            padding: var(--space-lg);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-            transition: box-shadow var(--transition-medium);
-        }
-
-        .card:hover {
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-        }
-
-        /* Narrative blocks */
-        .narrative {
-            font-family: 'Libre Baskerville', Georgia, serif;
-            font-size: 1.1rem;
-            color: var(--text-secondary);
-            max-width: 65ch;
-            margin: 0 auto var(--space-xl);
-            font-style: italic;
-        }
-
-        .narrative::before {
-            content: '"';
-            font-size: 2rem;
-            line-height: 0;
-            vertical-align: -0.3em;
-            color: var(--lorenz-end);
-            margin-right: 0.1em;
-        }
-
-        /* Stats Panel */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: var(--space-md);
-        }
-
-        .stat-card {
-            text-align: center;
-            padding: var(--space-md);
-            background: var(--bg-secondary);
-            border-radius: 8px;
-            transition: transform var(--transition-medium);
-        }
-
-        .stat-card:hover {
-            transform: translateY(-2px);
-        }
-
-        .stat-value {
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 2rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: var(--space-xs);
-        }
-
-        .stat-value.gini {
-            color: var(--lorenz-end);
-        }
-
-        .stat-label {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .stat-sublabel {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-top: var(--space-xs);
-        }
-
-        /* Charts */
-        .chart-container {
-            position: relative;
-            width: 100%;
-        }
-
-        .chart-title {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            margin-bottom: var(--space-md);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        svg {
-            display: block;
-            width: 100%;
-            height: auto;
-            overflow: visible;
-        }
-
-        .axis-label {
-            font-size: 0.75rem;
-            fill: var(--text-secondary);
-        }
-
-        .axis line,
-        .axis path {
-            stroke: var(--bg-secondary);
-        }
-
-        .axis text {
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 0.7rem;
-            fill: var(--text-secondary);
-        }
-
-        /* Lorenz curve specific */
-        .lorenz-area {
-            fill: var(--gini-fill);
-            opacity: 0;
-            transition: opacity var(--transition-slow);
-        }
-
-        .lorenz-area.visible {
-            opacity: 1;
-        }
-
-        .equality-line {
-            stroke: var(--equality-line);
-            stroke-width: 1.5;
-            stroke-dasharray: 6, 4;
-        }
-
-        .lorenz-curve {
-            fill: none;
-            stroke-width: 3;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-        }
-
-        /* Heat strip */
-        .heat-strip-container {
-            position: relative;
-            margin: var(--space-lg) 0;
-        }
-
-        .heat-strip {
-            height: 40px;
-            border-radius: 4px;
-            overflow: hidden;
-            display: flex;
-            cursor: crosshair;
-        }
-
-        .heat-strip-segment {
-            flex: 1;
-            transition: opacity var(--transition-fast);
-        }
-
-        .heat-strip-segment:hover {
-            opacity: 0.8;
-        }
-
-        .heat-strip-labels {
-            display: flex;
-            justify-content: space-between;
-            margin-top: var(--space-sm);
-        }
-
-        .heat-strip-label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
-        /* Tooltips */
-        .tooltip {
-            position: absolute;
-            background: var(--annotation);
-            color: white;
-            padding: var(--space-sm) var(--space-md);
-            border-radius: 4px;
-            font-size: 0.85rem;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity var(--transition-fast);
-            z-index: 100;
-            white-space: nowrap;
-        }
-
-        .tooltip.visible {
-            opacity: 1;
-        }
-
-        .tooltip::before {
-            content: '';
-            position: absolute;
-            bottom: -6px;
-            left: 50%;
-            transform: translateX(-50%);
-            border-left: 6px solid transparent;
-            border-right: 6px solid transparent;
-            border-top: 6px solid var(--annotation);
-        }
-
-        /* Annotations */
-        .annotation {
-            position: absolute;
-            background: var(--highlight);
-            color: var(--text-primary);
-            padding: var(--space-xs) var(--space-sm);
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-
-        /* Legend */
-        .legend {
-            display: flex;
-            gap: var(--space-lg);
-            justify-content: center;
-            margin-top: var(--space-lg);
-            flex-wrap: wrap;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: var(--space-sm);
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-
-        .legend-color {
-            width: 20px;
-            height: 3px;
-            border-radius: 2px;
-        }
-
-        .legend-color.equality {
-            background: var(--equality-line);
-            border-style: dashed;
-        }
-
-        .legend-color.lorenz {
-            background: linear-gradient(to right, var(--lorenz-start), var(--lorenz-end));
-        }
-
-        /* HHI Indicator */
-        .hhi-indicator {
-            display: flex;
-            align-items: center;
-            gap: var(--space-sm);
-            padding: var(--space-sm) var(--space-md);
-            background: var(--bg-secondary);
-            border-radius: 20px;
-            font-size: 0.85rem;
-            width: fit-content;
-            margin: var(--space-md) auto 0;
-        }
-
-        .hhi-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-
-        .hhi-dot.low { background: var(--success); }
-        .hhi-dot.medium { background: var(--warning); }
-        .hhi-dot.high { background: var(--lorenz-end); }
-
-        /* Controls */
-        .controls {
-            display: flex;
-            gap: var(--space-md);
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-bottom: var(--space-lg);
-        }
-
-        .btn {
-            padding: var(--space-sm) var(--space-md);
-            border: 1px solid var(--bg-secondary);
-            background: white;
-            border-radius: 4px;
-            font-family: inherit;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: all var(--transition-fast);
-        }
-
-        .btn:hover {
-            background: var(--bg-secondary);
-        }
-
-        .btn.active {
-            background: var(--text-primary);
-            color: white;
-            border-color: var(--text-primary);
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .container {
-                padding: var(--space-md);
-            }
-
-            header {
-                padding: var(--space-xl) var(--space-md);
-            }
-
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .stat-value {
-                font-size: 1.5rem;
-            }
-        }
-
-        /* Animations */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes countUp {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .fade-in {
-            animation: fadeIn 0.6s ease-out forwards;
-        }
-
-        .delay-1 { animation-delay: 0.1s; }
-        .delay-2 { animation-delay: 0.2s; }
-        .delay-3 { animation-delay: 0.3s; }
-        .delay-4 { animation-delay: 0.4s; }
-
-        /* Gini display */
-        .gini-display {
-            text-align: center;
-            margin: var(--space-lg) 0;
-        }
-
-        .gini-value {
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 4rem;
-            font-weight: 600;
-            color: var(--lorenz-end);
-            line-height: 1;
-        }
-
-        .gini-label {
-            font-size: 1rem;
-            color: var(--text-secondary);
-            margin-top: var(--space-sm);
-        }
-
-        /* Footer */
-        footer {
-            text-align: center;
-            padding: var(--space-2xl) var(--space-lg);
-            border-top: 1px solid var(--bg-secondary);
-            color: var(--text-muted);
-            font-size: 0.85rem;
-        }
-
-        footer a {
-            color: var(--text-secondary);
-        }
-
-        /* Interpretation boxes */
-        .interpretation {
-            background: var(--bg-secondary);
-            border-left: 3px solid var(--lorenz-end);
-            padding: var(--space-md) var(--space-lg);
-            margin: var(--space-lg) 0;
-            font-size: 0.9rem;
-        }
-
-        .interpretation strong {
-            color: var(--lorenz-end);
-        }
-
-        /* Loading state */
-        .loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 300px;
-            color: var(--text-muted);
-        }
-
-        .loading::after {
-            content: '';
-            width: 24px;
-            height: 24px;
-            border: 2px solid var(--bg-secondary);
-            border-top-color: var(--lorenz-end);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-left: var(--space-md);
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        :root{--bg-primary:#FEFDFB;--bg-secondary:#F8F6F3;--text-primary:#1A1A1A;--text-secondary:#6B6B6B;--text-muted:#999;--equality-line:#C4C4C4;--lorenz-start:#4A90D9;--lorenz-end:#E85D4C;--gini-fill:rgba(232,93,76,.15);--highlight:#FFD166;--annotation:#2D3436;--success:#27AE60;--warning:#F39C12;--space-xs:.25rem;--space-sm:.5rem;--space-md:1rem;--space-lg:2rem;--space-xl:3rem;--space-2xl:4rem;--transition-fast:150ms ease-out;--transition-medium:300ms ease-out;--transition-slow:400ms ease-out}
+        *{margin:0;padding:0;box-sizing:border-box}
+        html{font-size:16px;scroll-behavior:smooth}
+        body{font-family:'IBM Plex Sans',system-ui,-apple-system,sans-serif;background:var(--bg-primary);color:var(--text-primary);line-height:1.6;min-height:100vh}
+        h1,h2,h3{font-family:'Libre Baskerville',Georgia,serif;font-weight:700;line-height:1.3}
+        h1{font-size:clamp(2rem,5vw,3rem);margin-bottom:var(--space-sm)}
+        h2{font-size:clamp(1.25rem,3vw,1.75rem);margin-bottom:var(--space-md)}
+        h3{font-size:1.1rem;margin-bottom:var(--space-sm)}
+        .subtitle{font-size:clamp(1rem,2vw,1.25rem);color:var(--text-secondary);font-weight:400;margin-bottom:var(--space-lg)}
+        .mono{font-family:'IBM Plex Mono',monospace}
+        .container{max-width:1200px;margin:0 auto;padding:var(--space-lg)}
+        header{text-align:center;padding:var(--space-2xl) var(--space-lg);border-bottom:1px solid var(--bg-secondary)}
+        .grid{display:grid;gap:var(--space-xl)}
+        .grid-2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+        .grid-3{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+        section{padding:var(--space-xl) 0}
+        .card{background:#fff;border-radius:8px;padding:var(--space-lg);box-shadow:0 2px 8px rgba(0,0,0,.04);transition:box-shadow var(--transition-medium)}
+        .card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08)}
+        .narrative{font-family:'Libre Baskerville',Georgia,serif;font-size:1.1rem;color:var(--text-secondary);max-width:65ch;margin:0 auto var(--space-xl);font-style:italic}
+        .narrative::before{content:'"';font-size:2rem;line-height:0;vertical-align:-.3em;color:var(--lorenz-end);margin-right:.1em}
+        .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--space-md)}
+        .stat-card{text-align:center;padding:var(--space-md);background:var(--bg-secondary);border-radius:8px;transition:transform var(--transition-medium)}
+        .stat-card:hover{transform:translateY(-2px)}
+        .stat-value{font-family:'IBM Plex Mono',monospace;font-size:2rem;font-weight:600;color:var(--text-primary);margin-bottom:var(--space-xs)}
+        .stat-value.gini{color:var(--lorenz-end)}
+        .stat-label{font-size:.85rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em}
+        .stat-sublabel{font-size:.75rem;color:var(--text-muted);margin-top:var(--space-xs)}
+        .chart-container{position:relative;width:100%}
+        .chart-title{font-size:.9rem;color:var(--text-secondary);margin-bottom:var(--space-md);text-transform:uppercase;letter-spacing:.05em}
+        svg{display:block;width:100%;height:auto;overflow:visible}
+        .axis-label{font-size:.75rem;fill:var(--text-secondary)}
+        .axis line,.axis path{stroke:var(--bg-secondary)}
+        .axis text{font-family:'IBM Plex Mono',monospace;font-size:.7rem;fill:var(--text-secondary)}
+        .lorenz-area{fill:var(--gini-fill);opacity:0;transition:opacity var(--transition-slow)}
+        .lorenz-area.visible{opacity:1}
+        .equality-line{stroke:var(--equality-line);stroke-width:1.5;stroke-dasharray:6,4}
+        .lorenz-curve{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+        .heat-strip-container{position:relative;margin:var(--space-lg) 0}
+        .heat-strip{height:40px;border-radius:4px;overflow:hidden;display:flex;cursor:crosshair}
+        .heat-strip-segment{flex:1;transition:opacity var(--transition-fast)}
+        .heat-strip-segment:hover{opacity:.8}
+        .heat-strip-labels{display:flex;justify-content:space-between;margin-top:var(--space-sm)}
+        .heat-strip-label{font-size:.75rem;color:var(--text-muted)}
+        .tooltip{position:absolute;background:var(--annotation);color:#fff;padding:var(--space-sm) var(--space-md);border-radius:4px;font-size:.85rem;pointer-events:none;opacity:0;transition:opacity var(--transition-fast);z-index:100;white-space:nowrap}
+        .tooltip.visible{opacity:1}
+        .tooltip::before{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);border-left:6px solid transparent;border-right:6px solid transparent;border-top:6px solid var(--annotation)}
+        .legend{display:flex;gap:var(--space-lg);justify-content:center;margin-top:var(--space-lg);flex-wrap:wrap}
+        .legend-item{display:flex;align-items:center;gap:var(--space-sm);font-size:.85rem;color:var(--text-secondary)}
+        .legend-color{width:20px;height:3px;border-radius:2px}
+        .legend-color.equality{background:var(--equality-line)}
+        .legend-color.lorenz{background:linear-gradient(to right,var(--lorenz-start),var(--lorenz-end))}
+        .hhi-indicator{display:flex;align-items:center;gap:var(--space-sm);padding:var(--space-sm) var(--space-md);background:var(--bg-secondary);border-radius:20px;font-size:.85rem;width:fit-content;margin:var(--space-md) auto 0}
+        .hhi-dot{width:8px;height:8px;border-radius:50%}
+        .hhi-dot.low{background:var(--success)}
+        .hhi-dot.medium{background:var(--warning)}
+        .hhi-dot.high{background:var(--lorenz-end)}
+        .gini-display{text-align:center;margin:var(--space-lg) 0}
+        .gini-value{font-family:'IBM Plex Mono',monospace;font-size:4rem;font-weight:600;color:var(--lorenz-end);line-height:1}
+        .gini-label{font-size:1rem;color:var(--text-secondary);margin-top:var(--space-sm)}
+        .interpretation{background:var(--bg-secondary);border-left:3px solid var(--lorenz-end);padding:var(--space-md) var(--space-lg);margin:var(--space-lg) 0;font-size:.9rem}
+        .interpretation strong{color:var(--lorenz-end)}
+        footer{text-align:center;padding:var(--space-2xl) var(--space-lg);border-top:1px solid var(--bg-secondary);color:var(--text-muted);font-size:.85rem}
+        footer a{color:var(--text-secondary)}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+        .fade-in{animation:fadeIn .6s ease-out forwards}
+        .delay-1{animation-delay:.1s}.delay-2{animation-delay:.2s}.delay-3{animation-delay:.3s}.delay-4{animation-delay:.4s}
+        @media(max-width:768px){.container{padding:var(--space-md)}header{padding:var(--space-xl) var(--space-md)}.stats-grid{grid-template-columns:repeat(2,1fr)}.stat-value{font-size:1.5rem}.gini-value{font-size:3rem}}
     </style>
 </head>
 <body>
@@ -544,720 +109,239 @@
     </header>
 
     <main class="container">
-        <!-- Section 1: The Inequality -->
         <section id="inequality">
             <p class="narrative">
                 Not all tasks are created equal. In this platform marketplace of 18,872 tasks, competition doesn't distribute evenly&mdash;it clusters. Some tasks become 'hot,' attracting waves of incumbent workers, while others are overlooked. The Gini coefficient measures this imbalance.
             </p>
-
             <div class="stats-grid" id="stats-panel">
-                <div class="stat-card fade-in delay-1">
-                    <div class="stat-value gini" id="gini-stat">--</div>
-                    <div class="stat-label">Gini Coefficient</div>
-                    <div class="stat-sublabel">Competition Inequality</div>
-                </div>
-                <div class="stat-card fade-in delay-2">
-                    <div class="stat-value mono" id="hhi-stat">--</div>
-                    <div class="stat-label">HHI Score</div>
-                    <div class="stat-sublabel" id="hhi-category">Market Concentration</div>
-                </div>
-                <div class="stat-card fade-in delay-3">
-                    <div class="stat-value mono" id="mean-stat">--</div>
-                    <div class="stat-label">Mean Incumbents</div>
-                    <div class="stat-sublabel">Per Task</div>
-                </div>
-                <div class="stat-card fade-in delay-4">
-                    <div class="stat-value mono" id="median-stat">--</div>
-                    <div class="stat-label">Median Incumbents</div>
-                    <div class="stat-sublabel">Per Task</div>
-                </div>
-                <div class="stat-card fade-in delay-4">
-                    <div class="stat-value mono" id="cv-stat">--</div>
-                    <div class="stat-label">Coefficient of Variation</div>
-                    <div class="stat-sublabel">Relative Dispersion</div>
-                </div>
+                <div class="stat-card fade-in delay-1"><div class="stat-value gini" id="gini-stat">--</div><div class="stat-label">Gini Coefficient</div><div class="stat-sublabel">Competition Inequality</div></div>
+                <div class="stat-card fade-in delay-2"><div class="stat-value mono" id="hhi-stat">--</div><div class="stat-label">HHI Score</div><div class="stat-sublabel" id="hhi-category">Market Concentration</div></div>
+                <div class="stat-card fade-in delay-3"><div class="stat-value mono" id="mean-stat">--</div><div class="stat-label">Mean Incumbents</div><div class="stat-sublabel">Per Task</div></div>
+                <div class="stat-card fade-in delay-4"><div class="stat-value mono" id="median-stat">--</div><div class="stat-label">Median Incumbents</div><div class="stat-sublabel">Per Task</div></div>
+                <div class="stat-card fade-in delay-4"><div class="stat-value mono" id="cv-stat">--</div><div class="stat-label">Coefficient of Variation</div><div class="stat-sublabel">Relative Dispersion</div></div>
             </div>
         </section>
 
-        <!-- Section 2: The Lorenz Curve -->
         <section id="lorenz-section">
             <h2>The Shape of Inequality</h2>
             <p class="narrative">
                 The Lorenz curve reveals the shape of inequality. If competition were perfectly equal, every task would attract the same attention&mdash;shown by the diagonal line. The actual curve shows how far we've drifted from that ideal.
             </p>
-
             <div class="card">
-                <div class="chart-container">
-                    <div id="lorenz-chart" class="loading">Loading visualization...</div>
-                </div>
-
-                <div class="gini-display">
-                    <div class="gini-value" id="gini-display">0.00</div>
-                    <div class="gini-label">Gini Coefficient</div>
-                </div>
-
+                <div class="chart-container"><div id="lorenz-chart"></div></div>
+                <div class="gini-display"><div class="gini-value" id="gini-display">0.00</div><div class="gini-label">Gini Coefficient</div></div>
                 <div class="legend">
-                    <div class="legend-item">
-                        <div class="legend-color equality"></div>
-                        <span>Perfect Equality</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color lorenz"></div>
-                        <span>Actual Distribution</span>
-                    </div>
+                    <div class="legend-item"><div class="legend-color equality"></div><span>Perfect Equality</span></div>
+                    <div class="legend-item"><div class="legend-color lorenz"></div><span>Actual Distribution</span></div>
                 </div>
-
-                <div class="interpretation">
-                    <strong>Reading the curve:</strong> At any point on the curve, hover to see what percentage of tasks receive what percentage of total competition.
-                    The further the curve bows from the diagonal, the greater the inequality.
-                </div>
+                <div class="interpretation"><strong>Reading the curve:</strong> At any point on the curve, hover to see what percentage of tasks receive what percentage of total competition. The further the curve bows from the diagonal, the greater the inequality.</div>
             </div>
         </section>
 
-        <!-- Section 3: Competition Heat Strip -->
         <section id="heatstrip-section">
             <h2>Competition Intensity Across All Tasks</h2>
-
             <div class="card">
                 <p class="chart-title">Tasks sorted by incumbent response count</p>
-
                 <div class="heat-strip-container">
                     <div id="heat-strip" class="heat-strip"></div>
                     <div class="heat-strip-labels">
-                        <span class="heat-strip-label">Lowest competition (0%)</span>
+                        <span class="heat-strip-label">Lowest (0%)</span>
                         <span class="heat-strip-label">Median (50%)</span>
-                        <span class="heat-strip-label">Highest competition (100%)</span>
+                        <span class="heat-strip-label">Highest (100%)</span>
                     </div>
                 </div>
-
                 <div id="heatstrip-tooltip" class="tooltip"></div>
-
-                <div class="interpretation">
-                    <strong>Hover to explore:</strong> Each segment represents ~100 tasks grouped by competition level.
-                    <span id="heatstrip-insight">The color gradient reveals how competition clusters at certain levels.</span>
-                </div>
+                <div class="interpretation"><strong>Hover to explore:</strong> Each segment represents ~200 tasks grouped by competition level.</div>
             </div>
         </section>
 
-        <!-- Section 4: Diminishing Returns -->
         <section id="diminishing-section">
             <h2>The Paradox of Competition</h2>
             <p class="narrative">
                 Here's the paradox: adding more competitors initially helps&mdash;but only to a point. Our regression analysis (R&sup2; = 0.77) reveals that the benefit of each additional respondent shrinks logarithmically. After a threshold, more competition brings diminishing returns.
             </p>
-
             <div class="grid grid-2">
                 <div class="card">
                     <p class="chart-title">Marginal Effect of Additional Incumbents</p>
                     <div id="diminishing-chart" class="chart-container"></div>
-
-                    <div class="interpretation">
-                        <strong>The inflection point:</strong> The curve shows how the marginal benefit of each additional competitor decreases.
-                        Early competition helps allocate tasks efficiently, but beyond a threshold, adding more competitors provides minimal additional benefit.
-                    </div>
+                    <div class="interpretation"><strong>The inflection point:</strong> The curve shows how the marginal benefit of each additional competitor decreases. Early competition helps allocate tasks efficiently, but beyond a threshold, adding more competitors provides minimal benefit.</div>
                 </div>
-
                 <div class="card">
                     <h3>Regression Results</h3>
-                    <div class="stats-grid" style="margin-top: var(--space-md);">
-                        <div class="stat-card">
-                            <div class="stat-value mono" id="rsquared-stat">--</div>
-                            <div class="stat-label">R-squared</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value mono" id="nobs-stat">--</div>
-                            <div class="stat-label">Observations</div>
-                        </div>
+                    <div class="stats-grid" style="margin-top:var(--space-md)">
+                        <div class="stat-card"><div class="stat-value mono" id="rsquared-stat">--</div><div class="stat-label">R-squared</div></div>
+                        <div class="stat-card"><div class="stat-value mono" id="nobs-stat">--</div><div class="stat-label">Observations</div></div>
                     </div>
-
-                    <div style="margin-top: var(--space-lg);">
+                    <div style="margin-top:var(--space-lg)">
                         <h3>Key Coefficients</h3>
-                        <table style="width: 100%; margin-top: var(--space-md); font-size: 0.9rem;">
-                            <tr style="border-bottom: 1px solid var(--bg-secondary);">
-                                <td style="padding: var(--space-sm) 0; color: var(--text-secondary);">Incumbents (linear)</td>
-                                <td style="text-align: right;" class="mono" id="coef-linear">--</td>
-                            </tr>
-                            <tr style="border-bottom: 1px solid var(--bg-secondary);">
-                                <td style="padding: var(--space-sm) 0; color: var(--text-secondary);">Incumbents (log)</td>
-                                <td style="text-align: right;" class="mono" id="coef-log">--</td>
-                            </tr>
-                            <tr>
-                                <td style="padding: var(--space-sm) 0; color: var(--text-secondary);">Intercept</td>
-                                <td style="text-align: right;" class="mono" id="coef-intercept">--</td>
-                            </tr>
+                        <table style="width:100%;margin-top:var(--space-md);font-size:.9rem">
+                            <tr style="border-bottom:1px solid var(--bg-secondary)"><td style="padding:var(--space-sm) 0;color:var(--text-secondary)">Incumbents (linear)</td><td style="text-align:right" class="mono" id="coef-linear">--</td></tr>
+                            <tr style="border-bottom:1px solid var(--bg-secondary)"><td style="padding:var(--space-sm) 0;color:var(--text-secondary)">Incumbents (log)</td><td style="text-align:right" class="mono" id="coef-log">--</td></tr>
+                            <tr><td style="padding:var(--space-sm) 0;color:var(--text-secondary)">Intercept</td><td style="text-align:right" class="mono" id="coef-intercept">--</td></tr>
                         </table>
                     </div>
-
-                    <div class="hhi-indicator" id="hhi-indicator">
-                        <span class="hhi-dot low"></span>
-                        <span>Market Classification: <span id="market-class">Loading...</span></span>
-                    </div>
+                    <div class="hhi-indicator"><span class="hhi-dot low"></span><span>Market: <span id="market-class">Loading...</span></span></div>
                 </div>
             </div>
         </section>
 
-        <!-- Section 5: Key Insights -->
         <section id="insights-section">
             <h2>Key Insights</h2>
-
             <div class="grid grid-3">
-                <div class="card">
-                    <h3>Bottom 50% Effect</h3>
-                    <div class="stat-value mono" id="bottom50-stat" style="font-size: 1.5rem; margin: var(--space-md) 0;">--</div>
-                    <p style="color: var(--text-secondary); font-size: 0.9rem;">
-                        Share of total competition received by the bottom half of tasks
-                    </p>
-                </div>
-
-                <div class="card">
-                    <h3>Top 10% Concentration</h3>
-                    <div class="stat-value mono" id="top10-stat" style="font-size: 1.5rem; margin: var(--space-md) 0;">--</div>
-                    <p style="color: var(--text-secondary); font-size: 0.9rem;">
-                        Share of total competition captured by the top 10% of tasks
-                    </p>
-                </div>
-
-                <div class="card">
-                    <h3>Competition Ratio</h3>
-                    <div class="stat-value mono" id="ratio-stat" style="font-size: 1.5rem; margin: var(--space-md) 0;">--</div>
-                    <p style="color: var(--text-secondary); font-size: 0.9rem;">
-                        P90/P10 ratio: how many times more competition the top tasks receive
-                    </p>
-                </div>
+                <div class="card"><h3>Bottom 50% Effect</h3><div class="stat-value mono" id="bottom50-stat" style="font-size:1.5rem;margin:var(--space-md) 0">--</div><p style="color:var(--text-secondary);font-size:.9rem">Share of total competition received by the bottom half of tasks</p></div>
+                <div class="card"><h3>Top 10% Concentration</h3><div class="stat-value mono" id="top10-stat" style="font-size:1.5rem;margin:var(--space-md) 0">--</div><p style="color:var(--text-secondary);font-size:.9rem">Share of total competition captured by the top 10% of tasks</p></div>
+                <div class="card"><h3>Competition Ratio</h3><div class="stat-value mono" id="ratio-stat" style="font-size:1.5rem;margin:var(--space-md) 0">--</div><p style="color:var(--text-secondary);font-size:.9rem">P90/P10 ratio: how many times more competition the top tasks receive</p></div>
             </div>
         </section>
     </main>
 
     <footer>
         <p>Platform Competition Inequality Explorer</p>
-        <p style="margin-top: var(--space-sm);">
-            Data source: <a href="#">AEI Dataset</a> |
-            Analysis based on 18,872 task observations
-        </p>
-        <p style="margin-top: var(--space-sm);">
-            Generated on January 25, 2026
-        </p>
+        <p style="margin-top:var(--space-sm)">Data source: AEI Dataset | Analysis based on 18,872 task observations</p>
+        <p style="margin-top:var(--space-sm)">Generated January 2026</p>
     </footer>
 
     <script>
-        // Global state
-        let dashboardData = null;
+    // Embedded data (4.6KB minified)
+    const DATA={"meta":{"n":10000,"src":"AEI Dataset"},"reg":{"r2":0.765,"nobs":18872,"coef":{"b0":-24360,"b1":28.8757,"b2":-3054.2842}},"stats":{"mean":79.3,"med":80.0,"std":39.4,"min":19.0,"max":349.0,"cv":0.497,"gini":0.2746,"hhi":1.25,"p10":25.0,"p25":53.0,"p50":80.0,"p75":104.0,"p90":126.0,"p99":178.0},"types":{"Core":{"n":13487,"m":75.8},"Supp":{"n":5385,"m":88.4}},"lorenz":[{"x":0.0,"y":0.0},{"x":0.0101,"y":0.0025},{"x":0.0202,"y":0.0052},{"x":0.0303,"y":0.0079},{"x":0.0404,"y":0.0107},{"x":0.0505,"y":0.0135},{"x":0.0606,"y":0.0164},{"x":0.0707,"y":0.0193},{"x":0.0808,"y":0.0223},{"x":0.0909,"y":0.0254},{"x":0.101,"y":0.0285},{"x":0.1111,"y":0.0317},{"x":0.1212,"y":0.0349},{"x":0.1313,"y":0.0383},{"x":0.1414,"y":0.0416},{"x":0.1515,"y":0.0451},{"x":0.1616,"y":0.0487},{"x":0.1717,"y":0.0522},{"x":0.1818,"y":0.0559},{"x":0.1919,"y":0.0598},{"x":0.202,"y":0.0637},{"x":0.2121,"y":0.0678},{"x":0.2222,"y":0.0721},{"x":0.2323,"y":0.0773},{"x":0.2424,"y":0.0837},{"x":0.2525,"y":0.0903},{"x":0.2626,"y":0.0974},{"x":0.2727,"y":0.1047},{"x":0.2828,"y":0.1122},{"x":0.2929,"y":0.1199},{"x":0.303,"y":0.1277},{"x":0.3131,"y":0.1356},{"x":0.3232,"y":0.1438},{"x":0.3333,"y":0.152},{"x":0.3434,"y":0.1604},{"x":0.3535,"y":0.1688},{"x":0.3636,"y":0.1773},{"x":0.3737,"y":0.186},{"x":0.3838,"y":0.1948},{"x":0.3939,"y":0.2037},{"x":0.404,"y":0.2128},{"x":0.4141,"y":0.2221},{"x":0.4242,"y":0.2314},{"x":0.4343,"y":0.2409},{"x":0.4444,"y":0.2505},{"x":0.4545,"y":0.2602},{"x":0.4646,"y":0.27},{"x":0.4747,"y":0.2799},{"x":0.4848,"y":0.2899},{"x":0.4949,"y":0.3},{"x":0.505,"y":0.3102},{"x":0.5151,"y":0.3205},{"x":0.5252,"y":0.331},{"x":0.5353,"y":0.3416},{"x":0.5454,"y":0.3523},{"x":0.5555,"y":0.3631},{"x":0.5656,"y":0.3741},{"x":0.5757,"y":0.3851},{"x":0.5858,"y":0.3963},{"x":0.5959,"y":0.4076},{"x":0.606,"y":0.419},{"x":0.6161,"y":0.4305},{"x":0.6262,"y":0.4421},{"x":0.6363,"y":0.4538},{"x":0.6464,"y":0.4656},{"x":0.6565,"y":0.4775},{"x":0.6666,"y":0.4896},{"x":0.6767,"y":0.5019},{"x":0.6868,"y":0.5142},{"x":0.6969,"y":0.5267},{"x":0.707,"y":0.5393},{"x":0.7171,"y":0.5521},{"x":0.7272,"y":0.565},{"x":0.7373,"y":0.578},{"x":0.7474,"y":0.5911},{"x":0.7575,"y":0.6044},{"x":0.7676,"y":0.6179},{"x":0.7777,"y":0.6315},{"x":0.7878,"y":0.6454},{"x":0.7979,"y":0.6594},{"x":0.808,"y":0.6736},{"x":0.8181,"y":0.6879},{"x":0.8282,"y":0.7025},{"x":0.8383,"y":0.7171},{"x":0.8484,"y":0.732},{"x":0.8585,"y":0.747},{"x":0.8686,"y":0.7623},{"x":0.8787,"y":0.7778},{"x":0.8888,"y":0.7934},{"x":0.8989,"y":0.8093},{"x":0.909,"y":0.8255},{"x":0.9191,"y":0.8421},{"x":0.9292,"y":0.859},{"x":0.9393,"y":0.8761},{"x":0.9494,"y":0.8937},{"x":0.9595,"y":0.9119},{"x":0.9696,"y":0.9307},{"x":0.9797,"y":0.9501},{"x":0.9898,"y":0.9708},{"x":1.0,"y":1.0}],"bins":[{"m":20.3,"n":19.0,"x":21.0,"p":0.0},{"m":21.5,"n":21.0,"x":22.0,"p":2.0},{"m":22.5,"n":22.0,"x":23.0,"p":4.0},{"m":23.3,"n":23.0,"x":24.0,"p":6.0},{"m":24.2,"n":24.0,"x":25.0,"p":8.0},{"m":25.3,"n":25.0,"x":26.0,"p":10.0},{"m":26.2,"n":26.0,"x":27.0,"p":12.0},{"m":27.5,"n":27.0,"x":28.0,"p":14.0},{"m":28.5,"n":28.0,"x":29.0,"p":16.0},{"m":30.3,"n":29.0,"x":32.0,"p":18.0},{"m":32.6,"n":32.0,"x":34.0,"p":20.0},{"m":43.6,"n":34.0,"x":50.0,"p":22.0},{"m":53.4,"n":50.0,"x":56.0,"p":24.0},{"m":57.6,"n":56.0,"x":59.0,"p":26.0},{"m":60.5,"n":59.0,"x":62.0,"p":28.0},{"m":62.9,"n":62.0,"x":64.0,"p":30.0},{"m":64.8,"n":64.0,"x":66.0,"p":32.0},{"m":66.4,"n":66.0,"x":67.0,"p":34.0},{"m":68.3,"n":67.0,"x":69.0,"p":36.0},{"m":70.4,"n":69.0,"x":72.0,"p":38.0},{"m":72.6,"n":72.0,"x":74.0,"p":40.0},{"m":74.5,"n":74.0,"x":75.0,"p":42.0},{"m":76.2,"n":75.0,"x":77.0,"p":44.0},{"m":77.6,"n":77.0,"x":78.0,"p":46.0},{"m":79.5,"n":78.0,"x":80.0,"p":48.0},{"m":81.1,"n":80.0,"x":82.0,"p":50.0},{"m":83.3,"n":82.0,"x":84.0,"p":52.0},{"m":85.0,"n":84.0,"x":86.0,"p":54.0},{"m":86.8,"n":86.0,"x":88.0,"p":56.0},{"m":88.5,"n":88.0,"x":89.0,"p":58.0},{"m":90.4,"n":89.0,"x":91.0,"p":60.0},{"m":91.9,"n":91.0,"x":93.0,"p":62.0},{"m":93.8,"n":93.0,"x":95.0,"p":64.0},{"m":95.9,"n":95.0,"x":97.0,"p":66.0},{"m":97.8,"n":97.0,"x":99.0,"p":68.0},{"m":99.9,"n":99.0,"x":101.0,"p":70.0},{"m":102.1,"n":101.0,"x":103.0,"p":72.0},{"m":104.1,"n":103.0,"x":105.0,"p":74.0},{"m":106.8,"n":105.0,"x":108.0,"p":76.0},{"m":109.8,"n":108.0,"x":111.0,"p":78.0},{"m":112.3,"n":111.0,"x":114.0,"p":80.0},{"m":114.9,"n":114.0,"x":116.0,"p":82.0},{"m":117.7,"n":116.0,"x":119.0,"p":84.0},{"m":120.9,"n":119.0,"x":122.0,"p":86.0},{"m":124.1,"n":122.0,"x":126.0,"p":88.0},{"m":129.1,"n":126.0,"x":132.0,"p":90.0},{"m":133.9,"n":132.0,"x":137.0,"p":92.0},{"m":140.9,"n":137.0,"x":145.0,"p":94.0},{"m":150.1,"n":145.0,"x":156.0,"p":96.0},{"m":195.7,"n":156.0,"x":349.0,"p":98.0}]};
 
-        // Animation utilities
-        function animateValue(element, start, end, duration, decimals = 2, suffix = '') {
-            const startTime = performance.now();
-            const update = (currentTime) => {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                const easeOut = 1 - Math.pow(1 - progress, 3);
-                const current = start + (end - start) * easeOut;
-                element.textContent = current.toFixed(decimals) + suffix;
-                if (progress < 1) {
-                    requestAnimationFrame(update);
-                }
-            };
-            requestAnimationFrame(update);
-        }
+    // Utility functions
+    function animateValue(el,start,end,duration,decimals=2,suffix=''){const st=performance.now();const update=(ct)=>{const p=Math.min((ct-st)/duration,1);const e=1-Math.pow(1-p,3);el.textContent=(start+(end-start)*e).toFixed(decimals)+suffix;if(p<1)requestAnimationFrame(update)};requestAnimationFrame(update)}
+    function fmt(n,d=0){return n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d})}
+    function heatColor(v,min,max){const r=(v-min)/(max-min);const s={r:74,g:144,b:217},e={r:232,g:93,b:76};return`rgb(${Math.round(s.r+(e.r-s.r)*r)},${Math.round(s.g+(e.g-s.g)*r)},${Math.round(s.b+(e.b-s.b)*r)})`}
 
-        // Format numbers with commas
-        function formatNumber(num, decimals = 0) {
-            return num.toLocaleString('en-US', {
-                minimumFractionDigits: decimals,
-                maximumFractionDigits: decimals
+    function drawLorenz(){
+        const c=document.getElementById('lorenz-chart');c.innerHTML='';
+        const m={top:30,right:30,bottom:50,left:60},w=c.clientWidth-m.left-m.right,h=400-m.top-m.bottom;
+        const svg=d3.select('#lorenz-chart').append('svg').attr('viewBox',`0 0 ${w+m.left+m.right} ${h+m.top+m.bottom}`).append('g').attr('transform',`translate(${m.left},${m.top})`);
+        const x=d3.scaleLinear().domain([0,1]).range([0,w]),y=d3.scaleLinear().domain([0,1]).range([h,0]);
+
+        // Gradient
+        const defs=svg.append('defs');const grad=defs.append('linearGradient').attr('id','lg').attr('gradientUnits','userSpaceOnUse');
+        grad.append('stop').attr('offset','0%').attr('stop-color','#4A90D9');grad.append('stop').attr('offset','100%').attr('stop-color','#E85D4C');
+
+        // Equality line
+        svg.append('line').attr('class','equality-line').attr('x1',x(0)).attr('y1',y(0)).attr('x2',x(1)).attr('y2',y(1));
+
+        // Area & curve
+        const line=d3.line().x(d=>x(d.x)).y(d=>y(d.y)).curve(d3.curveMonotoneX);
+        const area=d3.area().x(d=>x(d.x)).y0(d=>y(d.x)).y1(d=>y(d.y)).curve(d3.curveMonotoneX);
+        svg.append('path').datum(DATA.lorenz).attr('class','lorenz-area').attr('d',area).transition().delay(800).duration(600).style('opacity',1);
+        const path=svg.append('path').datum(DATA.lorenz).attr('class','lorenz-curve').attr('stroke','url(#lg)').attr('d',line);
+        const len=path.node().getTotalLength();
+        path.attr('stroke-dasharray',`${len} ${len}`).attr('stroke-dashoffset',len).transition().duration(1500).ease(d3.easeQuadOut).attr('stroke-dashoffset',0);
+
+        // Axes
+        svg.append('g').attr('class','axis').attr('transform',`translate(0,${h})`).call(d3.axisBottom(x).ticks(5).tickFormat(d=>(d*100)+'%'));
+        svg.append('g').attr('class','axis').call(d3.axisLeft(y).ticks(5).tickFormat(d=>(d*100)+'%'));
+        svg.append('text').attr('class','axis-label').attr('text-anchor','middle').attr('x',w/2).attr('y',h+40).text('Cumulative % of Tasks');
+        svg.append('text').attr('class','axis-label').attr('text-anchor','middle').attr('transform','rotate(-90)').attr('y',-45).attr('x',-h/2).text('Cumulative % of Competition');
+
+        // Interactive
+        const bisect=d3.bisector(d=>d.x).left;
+        const focus=svg.append('g').style('display','none');
+        focus.append('circle').attr('r',6).attr('fill','#E85D4C').attr('stroke','#fff').attr('stroke-width',2);
+        focus.append('line').attr('class','fx').attr('stroke','#C4C4C4').attr('stroke-dasharray','3,3');
+        focus.append('line').attr('class','fy').attr('stroke','#C4C4C4').attr('stroke-dasharray','3,3');
+        const tt=d3.select('#lorenz-chart').append('div').attr('class','tooltip').style('position','absolute');
+
+        svg.append('rect').attr('width',w).attr('height',h).style('fill','none').style('pointer-events','all')
+            .on('mouseover',()=>focus.style('display',null))
+            .on('mouseout',()=>{focus.style('display','none');tt.classed('visible',false)})
+            .on('mousemove',function(e){
+                const[mx]=d3.pointer(e),xv=x.invert(mx),i=bisect(DATA.lorenz,xv,1);
+                const d0=DATA.lorenz[i-1],d1=DATA.lorenz[i]||d0,d=xv-d0.x>d1.x-xv?d1:d0;
+                focus.attr('transform',`translate(${x(d.x)},${y(d.y)})`);
+                focus.select('.fx').attr('x1',0).attr('y1',0).attr('x2',-x(d.x)).attr('y2',0);
+                focus.select('.fy').attr('x1',0).attr('y1',0).attr('x2',0).attr('y2',h-y(d.y));
+                tt.classed('visible',true).style('left',`${x(d.x)+m.left}px`).style('top',`${y(d.y)+m.top-45}px`)
+                    .html(`Bottom <strong>${(d.x*100).toFixed(0)}%</strong> of tasks receive <strong>${(d.y*100).toFixed(1)}%</strong> of competition`);
             });
-        }
 
-        // Color scale for heat strip
-        function getHeatColor(value, min, max) {
-            const ratio = (value - min) / (max - min);
-            const startColor = { r: 74, g: 144, b: 217 };  // --lorenz-start
-            const endColor = { r: 232, g: 93, b: 76 };      // --lorenz-end
+        animateValue(document.getElementById('gini-display'),0,DATA.stats.gini,1500,4);
+    }
 
-            const r = Math.round(startColor.r + (endColor.r - startColor.r) * ratio);
-            const g = Math.round(startColor.g + (endColor.g - startColor.g) * ratio);
-            const b = Math.round(startColor.b + (endColor.b - startColor.b) * ratio);
-
-            return `rgb(${r}, ${g}, ${b})`;
-        }
-
-        // Lorenz curve gradient
-        function getLorenzGradient(svg, id) {
-            const defs = svg.append('defs');
-            const gradient = defs.append('linearGradient')
-                .attr('id', id)
-                .attr('gradientUnits', 'userSpaceOnUse');
-
-            gradient.append('stop')
-                .attr('offset', '0%')
-                .attr('stop-color', '#4A90D9');
-
-            gradient.append('stop')
-                .attr('offset', '100%')
-                .attr('stop-color', '#E85D4C');
-
-            return `url(#${id})`;
-        }
-
-        // Draw Lorenz curve
-        function drawLorenzCurve(data) {
-            const container = document.getElementById('lorenz-chart');
-            container.classList.remove('loading');
-            container.innerHTML = '';
-
-            const margin = { top: 30, right: 30, bottom: 50, left: 60 };
-            const width = container.clientWidth - margin.left - margin.right;
-            const height = 400 - margin.top - margin.bottom;
-
-            const svg = d3.select('#lorenz-chart')
-                .append('svg')
-                .attr('viewBox', `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`)
-                .append('g')
-                .attr('transform', `translate(${margin.left},${margin.top})`);
-
-            // Scales
-            const x = d3.scaleLinear().domain([0, 1]).range([0, width]);
-            const y = d3.scaleLinear().domain([0, 1]).range([height, 0]);
-
-            // Create gradient
-            const gradientUrl = getLorenzGradient(svg, 'lorenz-gradient');
-
-            // Draw equality line
-            svg.append('line')
-                .attr('class', 'equality-line')
-                .attr('x1', x(0))
-                .attr('y1', y(0))
-                .attr('x2', x(1))
-                .attr('y2', y(1));
-
-            // Line generator
-            const line = d3.line()
-                .x(d => x(d.x))
-                .y(d => y(d.y))
-                .curve(d3.curveMonotoneX);
-
-            // Area generator for Gini shading
-            const area = d3.area()
-                .x(d => x(d.x))
-                .y0(d => y(d.x))  // Equality line
-                .y1(d => y(d.y))  // Lorenz curve
-                .curve(d3.curveMonotoneX);
-
-            // Draw area (Gini region)
-            svg.append('path')
-                .datum(data.lorenz_curve)
-                .attr('class', 'lorenz-area')
-                .attr('d', area)
-                .transition()
-                .delay(800)
-                .duration(600)
-                .style('opacity', 1);
-
-            // Draw Lorenz curve with animation
-            const path = svg.append('path')
-                .datum(data.lorenz_curve)
-                .attr('class', 'lorenz-curve')
-                .attr('stroke', gradientUrl)
-                .attr('d', line);
-
-            // Animate the curve drawing
-            const totalLength = path.node().getTotalLength();
-            path
-                .attr('stroke-dasharray', `${totalLength} ${totalLength}`)
-                .attr('stroke-dashoffset', totalLength)
-                .transition()
-                .duration(1500)
-                .ease(d3.easeQuadOut)
-                .attr('stroke-dashoffset', 0);
-
-            // Axes
-            svg.append('g')
-                .attr('class', 'axis')
-                .attr('transform', `translate(0,${height})`)
-                .call(d3.axisBottom(x).ticks(5).tickFormat(d => (d * 100) + '%'));
-
-            svg.append('g')
-                .attr('class', 'axis')
-                .call(d3.axisLeft(y).ticks(5).tickFormat(d => (d * 100) + '%'));
-
-            // Axis labels
-            svg.append('text')
-                .attr('class', 'axis-label')
-                .attr('text-anchor', 'middle')
-                .attr('x', width / 2)
-                .attr('y', height + 40)
-                .text('Cumulative % of Tasks (sorted by competition)');
-
-            svg.append('text')
-                .attr('class', 'axis-label')
-                .attr('text-anchor', 'middle')
-                .attr('transform', 'rotate(-90)')
-                .attr('y', -45)
-                .attr('x', -height / 2)
-                .text('Cumulative % of Competition');
-
-            // Interactive overlay
-            const bisect = d3.bisector(d => d.x).left;
-
-            const focus = svg.append('g')
-                .style('display', 'none');
-
-            focus.append('circle')
-                .attr('r', 6)
-                .attr('fill', '#E85D4C')
-                .attr('stroke', 'white')
-                .attr('stroke-width', 2);
-
-            focus.append('line')
-                .attr('class', 'focus-line-x')
-                .attr('stroke', '#C4C4C4')
-                .attr('stroke-dasharray', '3,3');
-
-            focus.append('line')
-                .attr('class', 'focus-line-y')
-                .attr('stroke', '#C4C4C4')
-                .attr('stroke-dasharray', '3,3');
-
-            const tooltip = d3.select('#lorenz-chart')
-                .append('div')
-                .attr('class', 'tooltip')
-                .style('position', 'absolute')
-                .style('pointer-events', 'none');
-
-            svg.append('rect')
-                .attr('width', width)
-                .attr('height', height)
-                .style('fill', 'none')
-                .style('pointer-events', 'all')
-                .on('mouseover', () => focus.style('display', null))
-                .on('mouseout', () => {
-                    focus.style('display', 'none');
-                    tooltip.classed('visible', false);
-                })
-                .on('mousemove', function(event) {
-                    const [mouseX] = d3.pointer(event);
-                    const xValue = x.invert(mouseX);
-                    const i = bisect(data.lorenz_curve, xValue, 1);
-                    const d0 = data.lorenz_curve[i - 1];
-                    const d1 = data.lorenz_curve[i] || d0;
-                    const d = xValue - d0.x > d1.x - xValue ? d1 : d0;
-
-                    focus.attr('transform', `translate(${x(d.x)},${y(d.y)})`);
-
-                    focus.select('.focus-line-x')
-                        .attr('x1', 0)
-                        .attr('y1', 0)
-                        .attr('x2', -x(d.x))
-                        .attr('y2', 0);
-
-                    focus.select('.focus-line-y')
-                        .attr('x1', 0)
-                        .attr('y1', 0)
-                        .attr('x2', 0)
-                        .attr('y2', height - y(d.y));
-
-                    const taskPercent = (d.x * 100).toFixed(0);
-                    const compPercent = (d.y * 100).toFixed(1);
-
-                    tooltip
-                        .classed('visible', true)
-                        .style('left', `${x(d.x) + margin.left}px`)
-                        .style('top', `${y(d.y) + margin.top - 45}px`)
-                        .html(`Bottom <strong>${taskPercent}%</strong> of tasks receive <strong>${compPercent}%</strong> of competition`);
-                });
-
-            // Animate Gini display
-            const giniValue = data.summary_stats.gini;
-            animateValue(document.getElementById('gini-display'), 0, giniValue, 1500, 4);
-        }
-
-        // Draw heat strip
-        function drawHeatStrip(data) {
-            const container = document.getElementById('heat-strip');
-            container.innerHTML = '';
-
-            const bins = data.distribution_bins;
-            const min = d3.min(bins, d => d.mean);
-            const max = d3.max(bins, d => d.mean);
-
-            const tooltip = document.getElementById('heatstrip-tooltip');
-
-            bins.forEach((bin, i) => {
-                const segment = document.createElement('div');
-                segment.className = 'heat-strip-segment';
-                segment.style.backgroundColor = getHeatColor(bin.mean, min, max);
-
-                segment.addEventListener('mouseenter', (e) => {
-                    const rect = segment.getBoundingClientRect();
-                    const containerRect = container.parentElement.getBoundingClientRect();
-
-                    tooltip.innerHTML = `
-                        <strong>Percentile ${bin.percentile_start.toFixed(0)}-${bin.percentile_end.toFixed(0)}%</strong><br>
-                        Mean: ${bin.mean.toFixed(1)} incumbents<br>
-                        Range: ${bin.min}-${bin.max}
-                    `;
-                    tooltip.style.left = `${rect.left - containerRect.left + rect.width/2}px`;
-                    tooltip.style.top = `-50px`;
-                    tooltip.classList.add('visible');
-                });
-
-                segment.addEventListener('mouseleave', () => {
-                    tooltip.classList.remove('visible');
-                });
-
-                container.appendChild(segment);
+    function drawHeatStrip(){
+        const c=document.getElementById('heat-strip');c.innerHTML='';
+        const bins=DATA.bins,min=d3.min(bins,d=>d.m),max=d3.max(bins,d=>d.m);
+        const tt=document.getElementById('heatstrip-tooltip');
+        bins.forEach(bin=>{
+            const seg=document.createElement('div');seg.className='heat-strip-segment';seg.style.backgroundColor=heatColor(bin.m,min,max);
+            seg.addEventListener('mouseenter',e=>{
+                const rect=seg.getBoundingClientRect(),cr=c.parentElement.getBoundingClientRect();
+                tt.innerHTML=`<strong>Percentile ${bin.p.toFixed(0)}-${(bin.p+2).toFixed(0)}%</strong><br>Mean: ${bin.m} incumbents<br>Range: ${bin.n}-${bin.x}`;
+                tt.style.left=`${rect.left-cr.left+rect.width/2}px`;tt.style.top='-50px';tt.classList.add('visible');
             });
-        }
-
-        // Draw diminishing returns curve
-        function drawDiminishingReturns(data) {
-            const container = document.getElementById('diminishing-chart');
-            container.innerHTML = '';
-
-            const margin = { top: 20, right: 30, bottom: 50, left: 70 };
-            const width = container.clientWidth - margin.left - margin.right;
-            const height = 300 - margin.top - margin.bottom;
-
-            const svg = d3.select('#diminishing-chart')
-                .append('svg')
-                .attr('viewBox', `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`)
-                .append('g')
-                .attr('transform', `translate(${margin.left},${margin.top})`);
-
-            // Regression coefficients for marginal effect
-            // dy/dx = β1 + β2/x (derivative of β1*x + β2*log(x))
-            const beta1 = data.regression.coefficients.incumbents_responding;
-            const beta2 = data.regression.coefficients.log_incumbents_responding;
-
-            // Generate marginal effect curve
-            const minX = data.summary_stats.min;
-            const maxX = data.summary_stats.max;
-            const curveData = [];
-
-            for (let x = minX; x <= maxX; x += 2) {
-                const marginalEffect = beta1 + beta2 / x;
-                curveData.push({ x, y: marginalEffect });
-            }
-
-            // Scales
-            const x = d3.scaleLinear()
-                .domain([minX, maxX])
-                .range([0, width]);
-
-            const yExtent = d3.extent(curveData, d => d.y);
-            const y = d3.scaleLinear()
-                .domain([Math.min(0, yExtent[0]), yExtent[1] * 1.1])
-                .range([height, 0]);
-
-            // Zero line
-            svg.append('line')
-                .attr('x1', 0)
-                .attr('x2', width)
-                .attr('y1', y(0))
-                .attr('y2', y(0))
-                .attr('stroke', '#C4C4C4')
-                .attr('stroke-dasharray', '4,4');
-
-            // Line generator
-            const line = d3.line()
-                .x(d => x(d.x))
-                .y(d => y(d.y))
-                .curve(d3.curveMonotoneX);
-
-            // Area under curve
-            const area = d3.area()
-                .x(d => x(d.x))
-                .y0(y(0))
-                .y1(d => y(d.y))
-                .curve(d3.curveMonotoneX);
-
-            svg.append('path')
-                .datum(curveData)
-                .attr('fill', 'rgba(74, 144, 217, 0.1)')
-                .attr('d', area);
-
-            // Draw curve with gradient
-            const gradient = svg.append('defs')
-                .append('linearGradient')
-                .attr('id', 'diminishing-gradient')
-                .attr('gradientUnits', 'userSpaceOnUse')
-                .attr('x1', 0)
-                .attr('x2', width);
-
-            gradient.append('stop')
-                .attr('offset', '0%')
-                .attr('stop-color', '#4A90D9');
-
-            gradient.append('stop')
-                .attr('offset', '100%')
-                .attr('stop-color', '#E85D4C');
-
-            const path = svg.append('path')
-                .datum(curveData)
-                .attr('fill', 'none')
-                .attr('stroke', 'url(#diminishing-gradient)')
-                .attr('stroke-width', 3)
-                .attr('d', line);
-
-            // Animate
-            const totalLength = path.node().getTotalLength();
-            path
-                .attr('stroke-dasharray', `${totalLength} ${totalLength}`)
-                .attr('stroke-dashoffset', totalLength)
-                .transition()
-                .duration(1500)
-                .ease(d3.easeQuadOut)
-                .attr('stroke-dashoffset', 0);
-
-            // Find inflection point (where marginal effect approaches zero or is minimum positive)
-            const inflectionPoint = curveData.reduce((min, d) =>
-                d.y > 0 && d.y < min.y ? d : min,
-                curveData.find(d => d.y > 0) || curveData[0]
-            );
-
-            // Mark inflection point
-            svg.append('circle')
-                .attr('cx', x(inflectionPoint.x))
-                .attr('cy', y(inflectionPoint.y))
-                .attr('r', 6)
-                .attr('fill', '#FFD166')
-                .attr('stroke', '#2D3436')
-                .attr('stroke-width', 2)
-                .style('opacity', 0)
-                .transition()
-                .delay(1500)
-                .duration(300)
-                .style('opacity', 1);
-
-            // Annotation for inflection
-            svg.append('text')
-                .attr('x', x(inflectionPoint.x) + 10)
-                .attr('y', y(inflectionPoint.y) - 10)
-                .attr('font-size', '0.75rem')
-                .attr('fill', '#2D3436')
-                .text(`~${Math.round(inflectionPoint.x)} incumbents`)
-                .style('opacity', 0)
-                .transition()
-                .delay(1600)
-                .duration(300)
-                .style('opacity', 1);
-
-            // Axes
-            svg.append('g')
-                .attr('class', 'axis')
-                .attr('transform', `translate(0,${height})`)
-                .call(d3.axisBottom(x).ticks(6).tickFormat(d => d));
-
-            svg.append('g')
-                .attr('class', 'axis')
-                .call(d3.axisLeft(y).ticks(5).tickFormat(d => d.toFixed(0)));
-
-            // Axis labels
-            svg.append('text')
-                .attr('class', 'axis-label')
-                .attr('text-anchor', 'middle')
-                .attr('x', width / 2)
-                .attr('y', height + 40)
-                .text('Number of Incumbents Responding');
-
-            svg.append('text')
-                .attr('class', 'axis-label')
-                .attr('text-anchor', 'middle')
-                .attr('transform', 'rotate(-90)')
-                .attr('y', -55)
-                .attr('x', -height / 2)
-                .text('Marginal Effect (δy/δx)');
-        }
-
-        // Update stats panel
-        function updateStats(data) {
-            const stats = data.summary_stats;
-            const regression = data.regression;
-
-            // Animate main stats
-            animateValue(document.getElementById('gini-stat'), 0, stats.gini, 1200, 4);
-            animateValue(document.getElementById('hhi-stat'), 0, stats.hhi, 1200, 2);
-            animateValue(document.getElementById('mean-stat'), 0, stats.mean, 1200, 1);
-            animateValue(document.getElementById('median-stat'), 0, stats.median, 1200, 0);
-            animateValue(document.getElementById('cv-stat'), 0, stats.cv, 1200, 3);
-
-            // Regression stats
-            animateValue(document.getElementById('rsquared-stat'), 0, regression.r_squared, 1200, 3);
-            document.getElementById('nobs-stat').textContent = formatNumber(regression.n_obs);
-
-            // Coefficients
-            document.getElementById('coef-linear').textContent = regression.coefficients.incumbents_responding.toFixed(4);
-            document.getElementById('coef-log').textContent = regression.coefficients.log_incumbents_responding.toFixed(4);
-            document.getElementById('coef-intercept').textContent = formatNumber(regression.coefficients.intercept);
-
-            // HHI classification
-            let hhiClass = 'low';
-            let hhiText = 'Unconcentrated';
-            if (stats.hhi >= 2500) {
-                hhiClass = 'high';
-                hhiText = 'Highly Concentrated';
-            } else if (stats.hhi >= 1500) {
-                hhiClass = 'medium';
-                hhiText = 'Moderately Concentrated';
-            }
-
-            document.getElementById('hhi-category').textContent = hhiText;
-            document.getElementById('market-class').textContent = hhiText;
-            const hhiDot = document.querySelector('.hhi-dot');
-            hhiDot.className = `hhi-dot ${hhiClass}`;
-
-            // Calculate percentile-based insights from Lorenz curve
-            const lorenz = data.lorenz_curve;
-
-            // Find y value at x=0.5 (bottom 50%)
-            const bottom50 = lorenz.find(d => d.x >= 0.5) || { y: 0.35 };
-            animateValue(document.getElementById('bottom50-stat'), 0, bottom50.y * 100, 1200, 1, '%');
-
-            // Find y value at x=0.9 (calculate top 10%)
-            const atP90 = lorenz.find(d => d.x >= 0.9) || { y: 0.85 };
-            const top10Share = (1 - atP90.y) * 100;
-            animateValue(document.getElementById('top10-stat'), 0, top10Share, 1200, 1, '%');
-
-            // P90/P10 ratio
-            const p90 = stats.percentiles.p90;
-            const p10 = stats.percentiles.p10;
-            const ratio = p90 / p10;
-            animateValue(document.getElementById('ratio-stat'), 0, ratio, 1200, 1, 'x');
-        }
-
-        // Load and initialize
-        async function init() {
-            try {
-                // Load data
-                const response = await fetch('competition_optimized.json');
-                dashboardData = await response.json();
-
-                // Draw visualizations
-                drawLorenzCurve(dashboardData);
-                drawHeatStrip(dashboardData);
-                drawDiminishingReturns(dashboardData);
-                updateStats(dashboardData);
-
-            } catch (error) {
-                console.error('Error loading data:', error);
-                document.getElementById('lorenz-chart').innerHTML =
-                    '<p style="color: var(--lorenz-end); text-align: center;">Error loading data. Please ensure competition_optimized.json is available.</p>';
-            }
-        }
-
-        // Handle resize
-        let resizeTimeout;
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(() => {
-                if (dashboardData) {
-                    drawLorenzCurve(dashboardData);
-                    drawDiminishingReturns(dashboardData);
-                }
-            }, 250);
+            seg.addEventListener('mouseleave',()=>tt.classList.remove('visible'));
+            c.appendChild(seg);
         });
+    }
 
-        // Initialize on load
-        document.addEventListener('DOMContentLoaded', init);
+    function drawDiminishing(){
+        const c=document.getElementById('diminishing-chart');c.innerHTML='';
+        const m={top:20,right:30,bottom:50,left:70},w=c.clientWidth-m.left-m.right,h=300-m.top-m.bottom;
+        const svg=d3.select('#diminishing-chart').append('svg').attr('viewBox',`0 0 ${w+m.left+m.right} ${h+m.top+m.bottom}`).append('g').attr('transform',`translate(${m.left},${m.top})`);
+
+        const b1=DATA.reg.coef.b1,b2=DATA.reg.coef.b2,minX=DATA.stats.min,maxX=DATA.stats.max;
+        const curve=[];for(let i=minX;i<=maxX;i+=2)curve.push({x:i,y:b1+b2/i});
+
+        const x=d3.scaleLinear().domain([minX,maxX]).range([0,w]);
+        const yExt=d3.extent(curve,d=>d.y);
+        const y=d3.scaleLinear().domain([Math.min(0,yExt[0]),yExt[1]*1.1]).range([h,0]);
+
+        svg.append('line').attr('x1',0).attr('x2',w).attr('y1',y(0)).attr('y2',y(0)).attr('stroke','#C4C4C4').attr('stroke-dasharray','4,4');
+
+        const line=d3.line().x(d=>x(d.x)).y(d=>y(d.y)).curve(d3.curveMonotoneX);
+        const area=d3.area().x(d=>x(d.x)).y0(y(0)).y1(d=>y(d.y)).curve(d3.curveMonotoneX);
+        svg.append('path').datum(curve).attr('fill','rgba(74,144,217,.1)').attr('d',area);
+
+        const grad=svg.append('defs').append('linearGradient').attr('id','dg').attr('gradientUnits','userSpaceOnUse').attr('x1',0).attr('x2',w);
+        grad.append('stop').attr('offset','0%').attr('stop-color','#4A90D9');grad.append('stop').attr('offset','100%').attr('stop-color','#E85D4C');
+
+        const path=svg.append('path').datum(curve).attr('fill','none').attr('stroke','url(#dg)').attr('stroke-width',3).attr('d',line);
+        const len=path.node().getTotalLength();
+        path.attr('stroke-dasharray',`${len} ${len}`).attr('stroke-dashoffset',len).transition().duration(1500).ease(d3.easeQuadOut).attr('stroke-dashoffset',0);
+
+        // Inflection point
+        const inf=curve.reduce((min,d)=>d.y>0&&d.y<min.y?d:min,curve.find(d=>d.y>0)||curve[0]);
+        svg.append('circle').attr('cx',x(inf.x)).attr('cy',y(inf.y)).attr('r',6).attr('fill','#FFD166').attr('stroke','#2D3436').attr('stroke-width',2).style('opacity',0).transition().delay(1500).duration(300).style('opacity',1);
+        svg.append('text').attr('x',x(inf.x)+10).attr('y',y(inf.y)-10).attr('font-size','.75rem').attr('fill','#2D3436').text(`~${Math.round(inf.x)} incumbents`).style('opacity',0).transition().delay(1600).duration(300).style('opacity',1);
+
+        svg.append('g').attr('class','axis').attr('transform',`translate(0,${h})`).call(d3.axisBottom(x).ticks(6));
+        svg.append('g').attr('class','axis').call(d3.axisLeft(y).ticks(5).tickFormat(d=>d.toFixed(0)));
+        svg.append('text').attr('class','axis-label').attr('text-anchor','middle').attr('x',w/2).attr('y',h+40).text('Number of Incumbents');
+        svg.append('text').attr('class','axis-label').attr('text-anchor','middle').attr('transform','rotate(-90)').attr('y',-55).attr('x',-h/2).text('Marginal Effect');
+    }
+
+    function updateStats(){
+        const s=DATA.stats,r=DATA.reg;
+        animateValue(document.getElementById('gini-stat'),0,s.gini,1200,4);
+        animateValue(document.getElementById('hhi-stat'),0,s.hhi,1200,2);
+        animateValue(document.getElementById('mean-stat'),0,s.mean,1200,1);
+        animateValue(document.getElementById('median-stat'),0,s.med,1200,0);
+        animateValue(document.getElementById('cv-stat'),0,s.cv,1200,3);
+        animateValue(document.getElementById('rsquared-stat'),0,r.r2,1200,3);
+        document.getElementById('nobs-stat').textContent=fmt(r.nobs);
+        document.getElementById('coef-linear').textContent=r.coef.b1.toFixed(4);
+        document.getElementById('coef-log').textContent=r.coef.b2.toFixed(4);
+        document.getElementById('coef-intercept').textContent=fmt(r.coef.b0);
+
+        let cls='low',txt='Unconcentrated';
+        if(s.hhi>=2500){cls='high';txt='Highly Concentrated'}else if(s.hhi>=1500){cls='medium';txt='Moderately Concentrated'}
+        document.getElementById('hhi-category').textContent=txt;
+        document.getElementById('market-class').textContent=txt;
+        document.querySelector('.hhi-dot').className=`hhi-dot ${cls}`;
+
+        // Lorenz insights
+        const l=DATA.lorenz,b50=l.find(d=>d.x>=0.5)||{y:0.35},at90=l.find(d=>d.x>=0.9)||{y:0.85};
+        animateValue(document.getElementById('bottom50-stat'),0,b50.y*100,1200,1,'%');
+        animateValue(document.getElementById('top10-stat'),0,(1-at90.y)*100,1200,1,'%');
+        animateValue(document.getElementById('ratio-stat'),0,s.p90/s.p10,1200,1,'x');
+    }
+
+    function init(){drawLorenz();drawHeatStrip();drawDiminishing();updateStats()}
+    let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{drawLorenz();drawDiminishing()},250)});
+    document.addEventListener('DOMContentLoaded',init);
     </script>
 </body>
 </html>
