@@ -1,0 +1,38 @@
+{
+  "total_records": 18872,
+  "columns": {
+    "onet_soc_code": "str",
+    "title": "str",
+    "task_id": "int64",
+    "task": "str",
+    "task_type": "str",
+    "incumbents_responding": "float64",
+    "date": "str",
+    "domain_source": "str",
+    "log_task_id": "float64",
+    "log_incumbents_responding": "float64"
+  },
+  "numeric_ranges": {
+    "task_id": {
+      "min": 1.0,
+      "max": 20841.0,
+      "mean": 10309.891267486222
+    },
+    "incumbents_responding": {
+      "min": 19.0,
+      "max": 349.0,
+      "mean": 79.4305320050869
+    },
+    "log_task_id": {
+      "min": 0.0,
+      "max": 9.94467747936099,
+      "mean": 8.937631182659656
+    },
+    "log_incumbents_responding": {
+      "min": 2.9444389791664403,
+      "max": 5.855071922202427,
+      "mean": 4.223328715752072
+    }
+  },
+  "categorical_values": {}
+}

@@ -1,0 +1,37 @@
+{
+  "total_records": 18872,
+  "columns": 10,
+  "numeric_columns": 4,
+  "categorical_columns": 6,
+  "memory_mb": 4.422234535217285,
+  "column_stats": {
+    "task_id": {
+      "mean": 10309.891267486222,
+      "median": 10205.5,
+      "std": 5948.838923174981,
+      "min": 1.0,
+      "max": 20841.0
+    },
+    "incumbents_responding": {
+      "mean": 79.4305320050869,
+      "median": 81.0,
+      "std": 39.451446960010855,
+      "min": 19.0,
+      "max": 349.0
+    },
+    "log_task_id": {
+      "mean": 8.937631182659656,
+      "median": 9.230682068433932,
+      "std": 0.9931962481783663,
+      "min": 0.0,
+      "max": 9.94467747936099
+    },
+    "log_incumbents_responding": {
+      "mean": 4.223328715752072,
+      "median": 4.394449154672439,
+      "std": 0.5939630192185842,
+      "min": 2.9444389791664403,
+      "max": 5.855071922202427
+    }
+  }
+}
