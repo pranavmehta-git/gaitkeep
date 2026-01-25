@@ -4,16 +4,30 @@ Data Ingestion Module
 Downloads and loads the Anthropic Economic Index (AEI) dataset
 from Hugging Face and exports to various formats.
 
-The AEI dataset is stored as individual CSV files in release folders,
+The AEI dataset is stored as individual CSV/JSON files in release folders,
 not as a standard HuggingFace dataset.
+
+Release structure (2025_09_15):
+- data/intermediate/aei_raw_*.csv - Raw usage data
+- data/output/aei_enriched_*.csv - Enriched data with metrics
+- request_hierarchy_tree_*.json - Request cluster hierarchies
 """
 
+import json
 import os
 from pathlib import Path
 from typing import Optional, List, Dict
 
 import pandas as pd
-from huggingface_hub import hf_hub_download, list_repo_files, HfApi
+
+try:
+    from huggingface_hub import hf_hub_download, list_repo_files, HfApi
+    HF_AVAILABLE = True
+except ImportError:
+    HF_AVAILABLE = False
+    print("Warning: huggingface_hub not installed. Using direct download.")
+
+import requests
 
 
 # Project paths
@@ -24,16 +38,37 @@ PROCESSED_DATA_DIR = DATA_DIR / "processed"
 
 # Dataset configuration
 REPO_ID = "Anthropic/EconomicIndex"
-DEFAULT_RELEASE = "release_2025_09_15"  # Most recent release with full data
 
-# Key data files in the AEI dataset
-AEI_DATA_FILES = {
-    "cluster_level": "data/output/cluster_level_dataset.csv",
-    "onet_tasks": "onet_task_statements.csv",
-    "soc_structure": "SOC_Structure.csv",
-    "task_pct_v1": "data/output/task_pct_v1.csv",
-    "task_pct_v2": "data/output/task_pct_v2.csv",
-    "automation_augmentation": "data/output/automation_vs_augmentation_by_task.csv",
+# Available releases (newest first)
+RELEASES = [
+    "release_2025_09_15",  # Geographic + first-party API data
+    "release_2025_03_27",  # Claude 3.7 Sonnet cluster-level data
+    "release_2025_02_10",  # Initial release with O*NET mappings
+]
+
+DEFAULT_RELEASE = "release_2025_03_27"  # Most stable with cluster-level data
+
+# File patterns for different releases
+RELEASE_FILES = {
+    "release_2025_03_27": {
+        "cluster_level": "cluster_level_data/cluster_level_dataset.csv",
+        "onet_tasks": "onet_task_statements.csv",
+        "soc_structure": "SOC_Structure.csv",
+        "task_pct_v1": "task_pct_v1.csv",
+        "task_pct_v2": "task_pct_v2.csv",
+        "automation_augmentation": "automation_vs_augmentation_by_task.csv",
+    },
+    "release_2025_02_10": {
+        "cluster_level": "cluster_level_data/cluster_level_dataset.csv",
+        "onet_tasks": "onet_task_statements.csv",
+        "soc_structure": "SOC_Structure.csv",
+        "automation_augmentation": "automation_vs_augmentation_by_task.csv",
+    },
+    "release_2025_09_15": {
+        # This release has date-stamped files - we'll discover them dynamically
+        "hierarchy_claude": "request_hierarchy_tree_claude_ai.json",
+        "hierarchy_api": "request_hierarchy_tree_1p_api.json",
+    },
 }
 
 
@@ -44,49 +79,10 @@ def setup_directories() -> None:
         print(f"Directory ready: {directory}")
 
 
-def list_available_releases() -> List[str]:
+def download_file_hf(filename: str, release: str = DEFAULT_RELEASE,
+                     local_dir: Optional[Path] = None) -> Path:
     """
-    List available release versions in the AEI repository.
-
-    Returns:
-        List of release folder names
-    """
-    try:
-        files = list_repo_files(REPO_ID, repo_type="dataset")
-        releases = set()
-        for f in files:
-            if f.startswith("release_"):
-                release = f.split("/")[0]
-                releases.add(release)
-        return sorted(releases)
-    except Exception as e:
-        print(f"Error listing releases: {e}")
-        return [DEFAULT_RELEASE]
-
-
-def list_release_files(release: str = DEFAULT_RELEASE) -> List[str]:
-    """
-    List all files in a specific release.
-
-    Args:
-        release: Release folder name
-
-    Returns:
-        List of file paths within the release
-    """
-    try:
-        all_files = list_repo_files(REPO_ID, repo_type="dataset")
-        release_files = [f for f in all_files if f.startswith(f"{release}/")]
-        return release_files
-    except Exception as e:
-        print(f"Error listing files: {e}")
-        return []
-
-
-def download_file(filename: str, release: str = DEFAULT_RELEASE,
-                  local_dir: Optional[Path] = None) -> Path:
-    """
-    Download a single file from the AEI repository.
+    Download a single file from the AEI repository using huggingface_hub.
 
     Args:
         filename: Path to file within the release folder
@@ -96,10 +92,12 @@ def download_file(filename: str, release: str = DEFAULT_RELEASE,
     Returns:
         Path to downloaded file
     """
+    if not HF_AVAILABLE:
+        raise ImportError("huggingface_hub required for download")
+
     if local_dir is None:
         local_dir = RAW_DATA_DIR
 
-    # Construct the full path in the repo
     repo_path = f"{release}/{filename}"
 
     try:
@@ -116,29 +114,117 @@ def download_file(filename: str, release: str = DEFAULT_RELEASE,
         raise
 
 
-def download_all_data_files(release: str = DEFAULT_RELEASE) -> Dict[str, Path]:
+def download_file_direct(filename: str, release: str = DEFAULT_RELEASE,
+                         local_dir: Optional[Path] = None) -> Path:
     """
-    Download all key data files from a release.
+    Download a file directly via HTTPS from Hugging Face.
 
     Args:
-        release: Release version to download
+        filename: Path to file within the release folder
+        release: Release version
+        local_dir: Local directory to save file
 
     Returns:
-        Dictionary mapping file keys to local paths
+        Path to downloaded file
     """
-    downloaded = {}
+    if local_dir is None:
+        local_dir = RAW_DATA_DIR
 
-    print(f"\nDownloading AEI data files from {release}...")
-    print("-" * 50)
+    # Construct URL
+    url = f"https://huggingface.co/datasets/{REPO_ID}/resolve/main/{release}/{filename}"
 
-    for key, filename in AEI_DATA_FILES.items():
+    # Create local path
+    local_path = local_dir / release / filename
+    local_path.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        print(f"Downloading: {url}")
+        response = requests.get(url, timeout=60)
+        response.raise_for_status()
+
+        with open(local_path, 'wb') as f:
+            f.write(response.content)
+
+        print(f"Saved to: {local_path}")
+        return local_path
+    except Exception as e:
+        print(f"Error downloading {url}: {e}")
+        raise
+
+
+def download_file(filename: str, release: str = DEFAULT_RELEASE,
+                  local_dir: Optional[Path] = None) -> Path:
+    """
+    Download a file from the AEI repository.
+
+    Args:
+        filename: Path to file within the release folder
+        release: Release version
+        local_dir: Local directory to save file
+
+    Returns:
+        Path to downloaded file
+    """
+    if HF_AVAILABLE:
         try:
-            path = download_file(filename, release)
-            downloaded[key] = path
-        except Exception as e:
-            print(f"  Skipping {key}: {e}")
+            return download_file_hf(filename, release, local_dir)
+        except Exception:
+            print("Falling back to direct download...")
 
-    return downloaded
+    return download_file_direct(filename, release, local_dir)
+
+
+def list_available_releases() -> List[str]:
+    """List available release versions."""
+    return RELEASES
+
+
+def get_release_files(release: str) -> Dict[str, str]:
+    """Get the file mapping for a specific release."""
+    return RELEASE_FILES.get(release, RELEASE_FILES[DEFAULT_RELEASE])
+
+
+def load_csv_file(filename: str, release: str = DEFAULT_RELEASE) -> pd.DataFrame:
+    """
+    Load a CSV file from a release, downloading if necessary.
+
+    Args:
+        filename: Path to CSV within release folder
+        release: Release version
+
+    Returns:
+        DataFrame with loaded data
+    """
+    local_path = RAW_DATA_DIR / release / filename
+
+    if not local_path.exists():
+        download_file(filename, release)
+
+    df = pd.read_csv(local_path)
+    print(f"Loaded {filename}: {len(df):,} rows, {len(df.columns)} columns")
+    return df
+
+
+def load_json_file(filename: str, release: str = DEFAULT_RELEASE) -> dict:
+    """
+    Load a JSON file from a release, downloading if necessary.
+
+    Args:
+        filename: Path to JSON within release folder
+        release: Release version
+
+    Returns:
+        Dictionary with loaded data
+    """
+    local_path = RAW_DATA_DIR / release / filename
+
+    if not local_path.exists():
+        download_file(filename, release)
+
+    with open(local_path, 'r') as f:
+        data = json.load(f)
+    print(f"Loaded {filename}")
+    return data
 
 
 def load_cluster_data(release: str = DEFAULT_RELEASE) -> pd.DataFrame:
@@ -156,105 +242,54 @@ def load_cluster_data(release: str = DEFAULT_RELEASE) -> pd.DataFrame:
     Returns:
         DataFrame with cluster-level data
     """
-    # Try to load from local first
-    local_path = RAW_DATA_DIR / release / "data" / "output" / "cluster_level_dataset.csv"
+    files = get_release_files(release)
+    if "cluster_level" not in files:
+        raise ValueError(f"No cluster_level data in {release}")
 
-    if not local_path.exists():
-        # Download if not present
-        download_file("data/output/cluster_level_dataset.csv", release)
+    return load_csv_file(files["cluster_level"], release)
 
-    df = pd.read_csv(local_path)
-    print(f"Loaded cluster_level_dataset: {len(df):,} rows")
-    return df
+
+def load_onet_tasks(release: str = DEFAULT_RELEASE) -> pd.DataFrame:
+    """Load O*NET task statements."""
+    files = get_release_files(release)
+    if "onet_tasks" not in files:
+        raise ValueError(f"No onet_tasks data in {release}")
+
+    return load_csv_file(files["onet_tasks"], release)
+
+
+def load_soc_structure(release: str = DEFAULT_RELEASE) -> pd.DataFrame:
+    """Load Standard Occupational Classification structure."""
+    files = get_release_files(release)
+    if "soc_structure" not in files:
+        raise ValueError(f"No soc_structure data in {release}")
+
+    return load_csv_file(files["soc_structure"], release)
+
+
+def load_automation_augmentation(release: str = DEFAULT_RELEASE) -> pd.DataFrame:
+    """Load automation vs augmentation data by task."""
+    files = get_release_files(release)
+    if "automation_augmentation" not in files:
+        raise ValueError(f"No automation_augmentation data in {release}")
+
+    return load_csv_file(files["automation_augmentation"], release)
 
 
 def load_task_percentages(version: str = "v2",
                           release: str = DEFAULT_RELEASE) -> pd.DataFrame:
-    """
-    Load task percentage data.
+    """Load task percentage data."""
+    files = get_release_files(release)
+    key = f"task_pct_{version}"
+    if key not in files:
+        raise ValueError(f"No {key} data in {release}")
 
-    Args:
-        version: "v1" or "v2"
-        release: Release version
-
-    Returns:
-        DataFrame with task percentages
-    """
-    filename = f"data/output/task_pct_{version}.csv"
-    local_path = RAW_DATA_DIR / release / filename
-
-    if not local_path.exists():
-        download_file(filename, release)
-
-    df = pd.read_csv(local_path)
-    print(f"Loaded task_pct_{version}: {len(df):,} rows")
-    return df
-
-
-def load_automation_augmentation(release: str = DEFAULT_RELEASE) -> pd.DataFrame:
-    """
-    Load automation vs augmentation data by task.
-
-    Args:
-        release: Release version
-
-    Returns:
-        DataFrame with automation/augmentation classifications
-    """
-    filename = "data/output/automation_vs_augmentation_by_task.csv"
-    local_path = RAW_DATA_DIR / release / filename
-
-    if not local_path.exists():
-        download_file(filename, release)
-
-    df = pd.read_csv(local_path)
-    print(f"Loaded automation_vs_augmentation: {len(df):,} rows")
-    return df
-
-
-def load_onet_tasks(release: str = DEFAULT_RELEASE) -> pd.DataFrame:
-    """
-    Load O*NET task statements.
-
-    Args:
-        release: Release version
-
-    Returns:
-        DataFrame with O*NET task definitions
-    """
-    local_path = RAW_DATA_DIR / release / "onet_task_statements.csv"
-
-    if not local_path.exists():
-        download_file("onet_task_statements.csv", release)
-
-    df = pd.read_csv(local_path)
-    print(f"Loaded onet_task_statements: {len(df):,} rows")
-    return df
-
-
-def load_soc_structure(release: str = DEFAULT_RELEASE) -> pd.DataFrame:
-    """
-    Load Standard Occupational Classification structure.
-
-    Args:
-        release: Release version
-
-    Returns:
-        DataFrame with SOC codes and titles
-    """
-    local_path = RAW_DATA_DIR / release / "SOC_Structure.csv"
-
-    if not local_path.exists():
-        download_file("SOC_Structure.csv", release)
-
-    df = pd.read_csv(local_path)
-    print(f"Loaded SOC_Structure: {len(df):,} rows")
-    return df
+    return load_csv_file(files[key], release)
 
 
 def load_all_aei_data(release: str = DEFAULT_RELEASE) -> Dict[str, pd.DataFrame]:
     """
-    Load all AEI datasets into a dictionary.
+    Load all available AEI datasets into a dictionary.
 
     Args:
         release: Release version
@@ -263,34 +298,19 @@ def load_all_aei_data(release: str = DEFAULT_RELEASE) -> Dict[str, pd.DataFrame]
         Dictionary with all DataFrames
     """
     print(f"\nLoading all AEI data from {release}...")
-    print("=" * 50)
+    print("=" * 60)
 
     data = {}
+    files = get_release_files(release)
 
-    try:
-        data["cluster_level"] = load_cluster_data(release)
-    except Exception as e:
-        print(f"Could not load cluster_level: {e}")
-
-    try:
-        data["task_pct"] = load_task_percentages("v2", release)
-    except Exception as e:
-        print(f"Could not load task_pct: {e}")
-
-    try:
-        data["automation_augmentation"] = load_automation_augmentation(release)
-    except Exception as e:
-        print(f"Could not load automation_augmentation: {e}")
-
-    try:
-        data["onet_tasks"] = load_onet_tasks(release)
-    except Exception as e:
-        print(f"Could not load onet_tasks: {e}")
-
-    try:
-        data["soc_structure"] = load_soc_structure(release)
-    except Exception as e:
-        print(f"Could not load soc_structure: {e}")
+    for key, filename in files.items():
+        try:
+            if filename.endswith('.csv'):
+                data[key] = load_csv_file(filename, release)
+            elif filename.endswith('.json'):
+                data[key] = load_json_file(filename, release)
+        except Exception as e:
+            print(f"Could not load {key}: {e}")
 
     return data
 
@@ -307,17 +327,23 @@ def create_merged_dataset(data: Dict[str, pd.DataFrame]) -> pd.DataFrame:
     """
     # Start with cluster-level data as the base
     if "cluster_level" not in data:
-        raise ValueError("cluster_level data required for merging")
+        # Return the largest available dataset
+        if data:
+            largest_key = max(data.keys(),
+                            key=lambda k: len(data[k]) if isinstance(data[k], pd.DataFrame) else 0)
+            if isinstance(data[largest_key], pd.DataFrame):
+                return data[largest_key].copy()
+        raise ValueError("No suitable data for merging")
 
     df = data["cluster_level"].copy()
 
     # Merge with automation/augmentation if available
     if "automation_augmentation" in data:
         aa_df = data["automation_augmentation"]
-        # Find common merge columns
-        common_cols = set(df.columns) & set(aa_df.columns)
+        common_cols = list(set(df.columns) & set(aa_df.columns))
         if common_cols:
-            merge_col = list(common_cols)[0]
+            # Use the first common column as merge key
+            merge_col = common_cols[0]
             df = df.merge(aa_df, on=merge_col, how="left", suffixes=("", "_aa"))
 
     print(f"Created merged dataset: {len(df):,} rows, {len(df.columns)} columns")
@@ -330,6 +356,7 @@ def export_to_csv(df: pd.DataFrame, filename: str = "aei.csv",
     if output_dir is None:
         output_dir = RAW_DATA_DIR
 
+    output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / filename
     df.to_csv(output_path, index=False)
     print(f"Exported to CSV: {output_path}")
@@ -342,6 +369,7 @@ def export_to_parquet(df: pd.DataFrame, filename: str = "aei.parquet",
     if output_dir is None:
         output_dir = RAW_DATA_DIR
 
+    output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / filename
     df.to_parquet(output_path, index=False)
     print(f"Exported to Parquet: {output_path}")
@@ -373,7 +401,7 @@ def print_dataset_summary(df: pd.DataFrame, name: str = "Dataset") -> None:
     print(f"Memory usage: {info['memory_usage_mb']:.2f} MB")
 
     print("\nColumns:")
-    for col in info['columns'][:15]:  # Show first 15 columns
+    for col in info['columns'][:15]:
         dtype = info['dtypes'][col]
         missing = info['missing_values'][col]
         missing_pct = (missing / info['n_rows']) * 100 if info['n_rows'] > 0 else 0
@@ -397,8 +425,7 @@ def main(release: str = DEFAULT_RELEASE):
 
     # List available releases
     print("\nAvailable releases:")
-    releases = list_available_releases()
-    for r in releases:
+    for r in list_available_releases():
         marker = " <-- using" if r == release else ""
         print(f"  - {r}{marker}")
 
@@ -409,9 +436,10 @@ def main(release: str = DEFAULT_RELEASE):
         print("No data loaded!")
         return None
 
-    # Print summaries for each dataset
-    for name, df in data.items():
-        print_dataset_summary(df, name)
+    # Print summaries for DataFrames
+    for name, item in data.items():
+        if isinstance(item, pd.DataFrame):
+            print_dataset_summary(item, name)
 
     # Create and export merged dataset
     try:
@@ -420,11 +448,13 @@ def main(release: str = DEFAULT_RELEASE):
         export_to_parquet(df_merged)
     except Exception as e:
         print(f"Could not create merged dataset: {e}")
-        # Export the main cluster-level data instead
-        if "cluster_level" in data:
-            export_to_csv(data["cluster_level"])
-            export_to_parquet(data["cluster_level"])
-            df_merged = data["cluster_level"]
+        # Export the first available DataFrame
+        for name, item in data.items():
+            if isinstance(item, pd.DataFrame):
+                export_to_csv(item)
+                export_to_parquet(item)
+                df_merged = item
+                break
 
     print("\nData ingestion complete!")
     return df_merged
