@@ -1,4 +1,4 @@
-# GaitKeep: AEI Dataset Analysis
+# gAItKeep: AEI Dataset Analysis
 
 Analysis pipeline for exploring the Anthropic Economic Index (AEI) dataset to uncover patterns related to AI usage and economic inequality.
 
