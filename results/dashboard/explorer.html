@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AEI Data Explorer | Interactive Visualization Tool</title>
+    <meta name="description" content="Interactive exploration tool for the Anthropic Economic Index. Drag and drop dimensions, select metrics, and discover patterns in AI task competition data.">
+
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --surface: #1e293b;
+            --surface-hover: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent: #3b82f6;
+            --accent-hover: #60a5fa;
+            --accent-muted: rgba(59, 130, 246, 0.2);
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #334155;
+            --chart-1: #3b82f6;
+            --chart-2: #8b5cf6;
+            --chart-3: #ec4899;
+            --chart-4: #f59e0b;
+            --chart-5: #22c55e;
+            --chart-6: #06b6d4;
+            --radius: 8px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Layout */
+        .app-container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            grid-template-rows: auto 1fr;
+            min-height: 100vh;
+        }
+
+        header {
+            grid-column: 1 / -1;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo { display: flex; align-items: center; gap: 0.75rem; }
+        .logo h1 { font-size: 1.25rem; font-weight: 600; }
+        .logo span { color: var(--accent); }
+
+        .header-stats {
+            display: flex;
+            gap: 2rem;
+            font-size: 0.875rem;
+        }
+
+        .header-stat { display: flex; align-items: center; gap: 0.5rem; }
+        .header-stat-value { color: var(--accent); font-weight: 600; }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .control-group { display: flex; flex-direction: column; gap: 0.75rem; }
+        .control-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        select, button {
+            font-family: inherit;
+            font-size: 0.875rem;
+            padding: 0.625rem 0.875rem;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        select:hover, button:hover { border-color: var(--accent); }
+        select:focus, button:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-muted); }
+
+        .btn-primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            font-weight: 500;
+        }
+        .btn-primary:hover { background: var(--accent-hover); }
+
+        /* Presets */
+        .presets-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .preset-btn {
+            text-align: left;
+            padding: 0.75rem;
+            background: var(--bg-tertiary);
+            border: 1px solid transparent;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .preset-btn:hover { border-color: var(--accent); background: var(--surface-hover); }
+        .preset-btn.active { border-color: var(--accent); background: var(--accent-muted); }
+
+        .preset-title { font-weight: 500; font-size: 0.875rem; }
+        .preset-desc { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+        /* Main Content */
+        .main-content {
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .chart-container {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .chart-title { font-size: 1.125rem; font-weight: 600; }
+        .chart-subtitle { font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.25rem; }
+
+        .chart-actions { display: flex; gap: 0.5rem; }
+        .chart-action {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            cursor: pointer;
+        }
+        .chart-action:hover { border-color: var(--accent); }
+        .chart-action.active { background: var(--accent-muted); border-color: var(--accent); }
+
+        #main-chart { width: 100%; height: 450px; position: relative; }
+
+        /* Stats Cards */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 1.25rem;
+            box-shadow: var(--shadow);
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--accent);
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 0.5rem;
+        }
+
+        /* Chart Styles */
+        .axis text { fill: var(--text-secondary); font-size: 11px; }
+        .axis line, .axis path { stroke: var(--border); }
+        .axis-label { fill: var(--text-secondary); font-size: 12px; }
+
+        .bar { transition: opacity 0.15s ease; }
+        .bar:hover { opacity: 0.8; }
+
+        .line-path { fill: none; stroke-width: 2.5; stroke-linecap: round; }
+
+        .tooltip {
+            position: absolute;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            z-index: 100;
+            box-shadow: var(--shadow);
+            max-width: 300px;
+        }
+
+        .tooltip.visible { opacity: 1; }
+        .tooltip-title { font-weight: 600; margin-bottom: 0.5rem; }
+        .tooltip-row { display: flex; justify-content: space-between; gap: 1rem; }
+        .tooltip-label { color: var(--text-secondary); }
+        .tooltip-value { font-weight: 500; }
+
+        /* Grid lines */
+        .grid line { stroke: var(--border); stroke-opacity: 0.5; stroke-dasharray: 2; }
+        .grid path { stroke-width: 0; }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        /* Insights Panel */
+        .insights-panel {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .insight-title { font-weight: 600; margin-bottom: 1rem; }
+
+        .insight-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .insight-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+        }
+
+        .insight-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--accent-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .app-container { grid-template-columns: 1fr; }
+            .sidebar {
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            }
+        }
+
+        @media (max-width: 640px) {
+            header { flex-direction: column; gap: 1rem; align-items: flex-start; }
+            .header-stats { flex-wrap: wrap; gap: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <span style="font-size: 1.5rem;">🔍</span>
+                <h1>AEI <span>Data Explorer</span></h1>
+            </div>
+            <div class="header-stats">
+                <div class="header-stat">
+                    <span>Records:</span>
+                    <span class="header-stat-value mono" id="total-records">--</span>
+                </div>
+                <div class="header-stat">
+                    <span>Occupations:</span>
+                    <span class="header-stat-value mono" id="total-occupations">--</span>
+                </div>
+                <div class="header-stat">
+                    <span>Time Range:</span>
+                    <span class="header-stat-value mono" id="time-range">--</span>
+                </div>
+            </div>
+        </header>
+
+        <aside class="sidebar">
+            <div class="control-group">
+                <label class="control-label">Quick Insights</label>
+                <div class="presets-grid" id="presets">
+                    <!-- Presets will be populated by JS -->
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">X-Axis (Dimension)</label>
+                <select id="x-dimension">
+                    <option value="occupation">Occupation (Top 30)</option>
+                    <option value="soc_group">SOC Major Group</option>
+                    <option value="task_type">Task Type</option>
+                    <option value="yearly">Year</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">Y-Axis (Metric)</label>
+                <select id="y-metric">
+                    <option value="mean">Mean Incumbents</option>
+                    <option value="median">Median Incumbents</option>
+                    <option value="count">Task Count</option>
+                    <option value="total">Total Incumbents</option>
+                    <option value="gini">Gini Coefficient</option>
+                    <option value="cv">Coefficient of Variation</option>
+                    <option value="std">Standard Deviation</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">Chart Type</label>
+                <select id="chart-type">
+                    <option value="bar">Bar Chart</option>
+                    <option value="horizontal-bar">Horizontal Bar</option>
+                    <option value="line">Line Chart</option>
+                    <option value="scatter">Scatter Plot</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">Sort Order</label>
+                <select id="sort-order">
+                    <option value="desc">Highest First</option>
+                    <option value="asc">Lowest First</option>
+                    <option value="alpha">Alphabetical</option>
+                </select>
+            </div>
+
+            <button class="btn-primary" onclick="updateChart()">Update Visualization</button>
+        </aside>
+
+        <main class="main-content">
+            <div class="stats-row" id="stats-row">
+                <!-- Stats will be populated by JS -->
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-header">
+                    <div>
+                        <div class="chart-title" id="chart-title">Loading...</div>
+                        <div class="chart-subtitle" id="chart-subtitle">Select dimensions to explore the data</div>
+                    </div>
+                    <div class="chart-actions">
+                        <button class="chart-action active" data-limit="30" onclick="setLimit(30)">Top 30</button>
+                        <button class="chart-action" data-limit="50" onclick="setLimit(50)">Top 50</button>
+                        <button class="chart-action" data-limit="0" onclick="setLimit(0)">All</button>
+                    </div>
+                </div>
+                <div id="main-chart"></div>
+                <div id="chart-tooltip" class="tooltip"></div>
+                <div class="legend" id="chart-legend"></div>
+            </div>
+
+            <div class="insights-panel">
+                <div class="insight-title">Key Findings</div>
+                <div class="insight-list" id="insights-list">
+                    <!-- Insights will be populated by JS -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+    // Data and state
+    let DATA = null;
+    let currentLimit = 30;
+
+    const PRESETS = [
+        {
+            id: 'inequality-occupations',
+            title: 'Inequality by Occupation',
+            desc: 'Which occupations have most unequal task competition?',
+            x: 'occupation', y: 'gini', chart: 'horizontal-bar', sort: 'desc'
+        },
+        {
+            id: 'competition-soc',
+            title: 'Competition by Industry',
+            desc: 'Average incumbents across SOC groups',
+            x: 'soc_group', y: 'mean', chart: 'horizontal-bar', sort: 'desc'
+        },
+        {
+            id: 'trends-yearly',
+            title: 'Yearly Trends',
+            desc: 'How has competition evolved over time?',
+            x: 'yearly', y: 'mean', chart: 'line', sort: 'alpha'
+        },
+        {
+            id: 'core-vs-supplemental',
+            title: 'Core vs Supplemental Tasks',
+            desc: 'Compare task types on key metrics',
+            x: 'task_type', y: 'mean', chart: 'bar', sort: 'desc'
+        },
+        {
+            id: 'task-volume',
+            title: 'Task Volume by Industry',
+            desc: 'Which industries have the most tasks?',
+            x: 'soc_group', y: 'count', chart: 'horizontal-bar', sort: 'desc'
+        },
+        {
+            id: 'inequality-trend',
+            title: 'Inequality Over Time',
+            desc: 'Gini coefficient trends by year',
+            x: 'yearly', y: 'gini', chart: 'line', sort: 'alpha'
+        }
+    ];
+
+    const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#22c55e', '#06b6d4', '#f43f5e', '#84cc16'];
+
+    // Initialize
+    async function init() {
+        try {
+            const response = await fetch('explorer_data.json');
+            DATA = await response.json();
+            populateUI();
+            applyPreset(PRESETS[0]);
+        } catch (err) {
+            console.error('Failed to load data:', err);
+            document.getElementById('main-chart').innerHTML = '<p style="color: var(--danger); padding: 2rem;">Failed to load data. Please refresh.</p>';
+        }
+    }
+
+    function populateUI() {
+        // Header stats
+        document.getElementById('total-records').textContent = DATA.overall.total_records.toLocaleString();
+        document.getElementById('total-occupations').textContent = DATA.overall.unique_occupations.toLocaleString();
+        document.getElementById('time-range').textContent = '2003-2015';
+
+        // Stats row
+        const statsHtml = `
+            <div class="stat-card">
+                <div class="stat-value mono">${DATA.overall.incumbents.mean.toFixed(1)}</div>
+                <div class="stat-label">Mean Incumbents</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value mono">${DATA.overall.incumbents.median.toFixed(0)}</div>
+                <div class="stat-label">Median Incumbents</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value mono">${DATA.overall.incumbents.gini.toFixed(4)}</div>
+                <div class="stat-label">Gini Coefficient</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value mono">${((DATA.overall.task_types.Core / DATA.overall.total_records) * 100).toFixed(1)}%</div>
+                <div class="stat-label">Core Tasks</div>
+            </div>
+        `;
+        document.getElementById('stats-row').innerHTML = statsHtml;
+
+        // Presets
+        const presetsHtml = PRESETS.map(p => `
+            <button class="preset-btn" data-preset="${p.id}" onclick="applyPreset(PRESETS.find(x => x.id === '${p.id}'))">
+                <div class="preset-title">${p.title}</div>
+                <div class="preset-desc">${p.desc}</div>
+            </button>
+        `).join('');
+        document.getElementById('presets').innerHTML = presetsHtml;
+    }
+
+    function applyPreset(preset) {
+        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector(`[data-preset="${preset.id}"]`)?.classList.add('active');
+
+        document.getElementById('x-dimension').value = preset.x;
+        document.getElementById('y-metric').value = preset.y;
+        document.getElementById('chart-type').value = preset.chart;
+        document.getElementById('sort-order').value = preset.sort;
+
+        updateChart();
+    }
+
+    function setLimit(limit) {
+        currentLimit = limit;
+        document.querySelectorAll('.chart-action').forEach(b => {
+            b.classList.toggle('active', parseInt(b.dataset.limit) === limit);
+        });
+        updateChart();
+    }
+
+    function getData(dimension) {
+        switch (dimension) {
+            case 'occupation': return DATA.occupation;
+            case 'soc_group': return DATA.soc_group;
+            case 'task_type': return DATA.task_type;
+            case 'yearly': return DATA.yearly.map(d => ({ ...d, name: d.year.toString() }));
+            default: return DATA.occupation;
+        }
+    }
+
+    function sortData(data, metric, order) {
+        const sorted = [...data];
+        if (order === 'alpha') {
+            sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        } else if (order === 'asc') {
+            sorted.sort((a, b) => (a[metric] || 0) - (b[metric] || 0));
+        } else {
+            sorted.sort((a, b) => (b[metric] || 0) - (a[metric] || 0));
+        }
+        return sorted;
+    }
+
+    function updateChart() {
+        const xDim = document.getElementById('x-dimension').value;
+        const yMetric = document.getElementById('y-metric').value;
+        const chartType = document.getElementById('chart-type').value;
+        const sortOrder = document.getElementById('sort-order').value;
+
+        let data = getData(xDim);
+        data = sortData(data, yMetric, sortOrder);
+
+        if (currentLimit > 0 && data.length > currentLimit) {
+            data = data.slice(0, currentLimit);
+        }
+
+        const metricLabels = {
+            mean: 'Mean Incumbents',
+            median: 'Median Incumbents',
+            count: 'Task Count',
+            total: 'Total Incumbents',
+            gini: 'Gini Coefficient',
+            cv: 'Coefficient of Variation',
+            std: 'Standard Deviation'
+        };
+
+        const dimLabels = {
+            occupation: 'Occupation',
+            soc_group: 'Industry (SOC Group)',
+            task_type: 'Task Type',
+            yearly: 'Year'
+        };
+
+        document.getElementById('chart-title').textContent = `${metricLabels[yMetric]} by ${dimLabels[xDim]}`;
+        document.getElementById('chart-subtitle').textContent = `Showing ${data.length} ${xDim === 'yearly' ? 'years' : 'categories'} · Sorted: ${sortOrder === 'desc' ? 'Highest first' : sortOrder === 'asc' ? 'Lowest first' : 'Alphabetical'}`;
+
+        // Draw chart
+        const container = document.getElementById('main-chart');
+        container.innerHTML = '';
+
+        switch (chartType) {
+            case 'bar': drawBarChart(container, data, yMetric); break;
+            case 'horizontal-bar': drawHorizontalBarChart(container, data, yMetric); break;
+            case 'line': drawLineChart(container, data, yMetric); break;
+            case 'scatter': drawScatterChart(container, data, yMetric); break;
+        }
+
+        // Generate insights
+        generateInsights(data, yMetric, xDim);
+    }
+
+    function drawBarChart(container, data, metric) {
+        const margin = { top: 30, right: 30, bottom: 120, left: 70 };
+        const width = container.clientWidth - margin.left - margin.right;
+        const height = 450 - margin.top - margin.bottom;
+
+        const svg = d3.select(container)
+            .append('svg')
+            .attr('width', width + margin.left + margin.right)
+            .attr('height', height + margin.top + margin.bottom)
+            .append('g')
+            .attr('transform', `translate(${margin.left},${margin.top})`);
+
+        const x = d3.scaleBand()
+            .range([0, width])
+            .domain(data.map(d => d.name))
+            .padding(0.2);
+
+        const y = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d[metric]) * 1.1])
+            .range([height, 0]);
+
+        // Grid
+        svg.append('g')
+            .attr('class', 'grid')
+            .call(d3.axisLeft(y).tickSize(-width).tickFormat(''));
+
+        // Bars
+        svg.selectAll('.bar')
+            .data(data)
+            .enter()
+            .append('rect')
+            .attr('class', 'bar')
+            .attr('x', d => x(d.name))
+            .attr('width', x.bandwidth())
+            .attr('y', d => y(d[metric]))
+            .attr('height', d => height - y(d[metric]))
+            .attr('fill', (d, i) => COLORS[i % COLORS.length])
+            .attr('rx', 4)
+            .on('mouseover', (e, d) => showTooltip(e, d, metric))
+            .on('mouseout', hideTooltip);
+
+        // Axes
+        svg.append('g')
+            .attr('class', 'axis')
+            .attr('transform', `translate(0,${height})`)
+            .call(d3.axisBottom(x))
+            .selectAll('text')
+            .attr('transform', 'rotate(-45)')
+            .style('text-anchor', 'end')
+            .attr('dx', '-0.5em')
+            .attr('dy', '0.5em');
+
+        svg.append('g')
+            .attr('class', 'axis')
+            .call(d3.axisLeft(y).tickFormat(d => formatValue(d, metric)));
+    }
+
+    function drawHorizontalBarChart(container, data, metric) {
+        const margin = { top: 20, right: 40, bottom: 40, left: 200 };
+        const barHeight = 28;
+        const height = Math.max(450, data.length * barHeight + margin.top + margin.bottom);
+        const width = container.clientWidth - margin.left - margin.right;
+
+        const svg = d3.select(container)
+            .append('svg')
+            .attr('width', width + margin.left + margin.right)
+            .attr('height', height)
+            .append('g')
+            .attr('transform', `translate(${margin.left},${margin.top})`);
+
+        const y = d3.scaleBand()
+            .range([0, height - margin.top - margin.bottom])
+            .domain(data.map(d => d.name))
+            .padding(0.15);
+
+        const x = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d[metric]) * 1.1])
+            .range([0, width]);
+
+        // Grid
+        svg.append('g')
+            .attr('class', 'grid')
+            .call(d3.axisBottom(x).tickSize(height - margin.top - margin.bottom).tickFormat(''));
+
+        // Bars
+        svg.selectAll('.bar')
+            .data(data)
+            .enter()
+            .append('rect')
+            .attr('class', 'bar')
+            .attr('y', d => y(d.name))
+            .attr('height', y.bandwidth())
+            .attr('x', 0)
+            .attr('width', d => x(d[metric]))
+            .attr('fill', (d, i) => COLORS[i % COLORS.length])
+            .attr('rx', 4)
+            .on('mouseover', (e, d) => showTooltip(e, d, metric))
+            .on('mouseout', hideTooltip);
+
+        // Value labels
+        svg.selectAll('.value-label')
+            .data(data)
+            .enter()
+            .append('text')
+            .attr('x', d => x(d[metric]) + 5)
+            .attr('y', d => y(d.name) + y.bandwidth() / 2)
+            .attr('dy', '0.35em')
+            .attr('fill', 'var(--text-secondary)')
+            .attr('font-size', '11px')
+            .text(d => formatValue(d[metric], metric));
+
+        // Y Axis
+        svg.append('g')
+            .attr('class', 'axis')
+            .call(d3.axisLeft(y))
+            .selectAll('text')
+            .attr('font-size', '11px')
+            .each(function() {
+                const text = d3.select(this);
+                if (text.text().length > 30) {
+                    text.text(text.text().substring(0, 27) + '...');
+                }
+            });
+
+        // X Axis
+        svg.append('g')
+            .attr('class', 'axis')
+            .attr('transform', `translate(0,${height - margin.top - margin.bottom})`)
+            .call(d3.axisBottom(x).tickFormat(d => formatValue(d, metric)));
+    }
+
+    function drawLineChart(container, data, metric) {
+        const margin = { top: 30, right: 30, bottom: 50, left: 70 };
+        const width = container.clientWidth - margin.left - margin.right;
+        const height = 450 - margin.top - margin.bottom;
+
+        const svg = d3.select(container)
+            .append('svg')
+            .attr('width', width + margin.left + margin.right)
+            .attr('height', height + margin.top + margin.bottom)
+            .append('g')
+            .attr('transform', `translate(${margin.left},${margin.top})`);
+
+        const x = d3.scalePoint()
+            .range([0, width])
+            .domain(data.map(d => d.name))
+            .padding(0.5);
+
+        const yExtent = d3.extent(data, d => d[metric]);
+        const yPadding = (yExtent[1] - yExtent[0]) * 0.1;
+        const y = d3.scaleLinear()
+            .domain([yExtent[0] - yPadding, yExtent[1] + yPadding])
+            .range([height, 0]);
+
+        // Grid
+        svg.append('g')
+            .attr('class', 'grid')
+            .call(d3.axisLeft(y).tickSize(-width).tickFormat(''));
+
+        // Line
+        const line = d3.line()
+            .x(d => x(d.name))
+            .y(d => y(d[metric]))
+            .curve(d3.curveMonotoneX);
+
+        // Gradient
+        const gradient = svg.append('defs')
+            .append('linearGradient')
+            .attr('id', 'line-gradient')
+            .attr('gradientUnits', 'userSpaceOnUse')
+            .attr('x1', 0).attr('y1', height)
+            .attr('x2', 0).attr('y2', 0);
+        gradient.append('stop').attr('offset', '0%').attr('stop-color', COLORS[0]);
+        gradient.append('stop').attr('offset', '100%').attr('stop-color', COLORS[2]);
+
+        // Area
+        const area = d3.area()
+            .x(d => x(d.name))
+            .y0(height)
+            .y1(d => y(d[metric]))
+            .curve(d3.curveMonotoneX);
+
+        svg.append('path')
+            .datum(data)
+            .attr('fill', 'url(#line-gradient)')
+            .attr('opacity', 0.1)
+            .attr('d', area);
+
+        svg.append('path')
+            .datum(data)
+            .attr('class', 'line-path')
+            .attr('stroke', 'url(#line-gradient)')
+            .attr('d', line);
+
+        // Points
+        svg.selectAll('.point')
+            .data(data)
+            .enter()
+            .append('circle')
+            .attr('cx', d => x(d.name))
+            .attr('cy', d => y(d[metric]))
+            .attr('r', 5)
+            .attr('fill', COLORS[0])
+            .attr('stroke', '#fff')
+            .attr('stroke-width', 2)
+            .style('cursor', 'pointer')
+            .on('mouseover', (e, d) => showTooltip(e, d, metric))
+            .on('mouseout', hideTooltip);
+
+        // Axes
+        svg.append('g')
+            .attr('class', 'axis')
+            .attr('transform', `translate(0,${height})`)
+            .call(d3.axisBottom(x));
+
+        svg.append('g')
+            .attr('class', 'axis')
+            .call(d3.axisLeft(y).tickFormat(d => formatValue(d, metric)));
+    }
+
+    function drawScatterChart(container, data, metric) {
+        const margin = { top: 30, right: 30, bottom: 50, left: 70 };
+        const width = container.clientWidth - margin.left - margin.right;
+        const height = 450 - margin.top - margin.bottom;
+
+        const svg = d3.select(container)
+            .append('svg')
+            .attr('width', width + margin.left + margin.right)
+            .attr('height', height + margin.top + margin.bottom)
+            .append('g')
+            .attr('transform', `translate(${margin.left},${margin.top})`);
+
+        const x = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.count) * 1.1])
+            .range([0, width]);
+
+        const y = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d[metric]) * 1.1])
+            .range([height, 0]);
+
+        // Grid
+        svg.append('g')
+            .attr('class', 'grid')
+            .call(d3.axisLeft(y).tickSize(-width).tickFormat(''));
+
+        // Points
+        svg.selectAll('.point')
+            .data(data)
+            .enter()
+            .append('circle')
+            .attr('cx', d => x(d.count))
+            .attr('cy', d => y(d[metric]))
+            .attr('r', 8)
+            .attr('fill', (d, i) => COLORS[i % COLORS.length])
+            .attr('opacity', 0.7)
+            .attr('stroke', '#fff')
+            .attr('stroke-width', 2)
+            .style('cursor', 'pointer')
+            .on('mouseover', (e, d) => showTooltip(e, d, metric))
+            .on('mouseout', hideTooltip);
+
+        // Axes
+        svg.append('g')
+            .attr('class', 'axis')
+            .attr('transform', `translate(0,${height})`)
+            .call(d3.axisBottom(x));
+
+        svg.append('text')
+            .attr('class', 'axis-label')
+            .attr('x', width / 2)
+            .attr('y', height + 40)
+            .attr('text-anchor', 'middle')
+            .text('Task Count');
+
+        svg.append('g')
+            .attr('class', 'axis')
+            .call(d3.axisLeft(y).tickFormat(d => formatValue(d, metric)));
+    }
+
+    function showTooltip(event, d, metric) {
+        const tooltip = document.getElementById('chart-tooltip');
+        const metricLabels = {
+            mean: 'Mean Incumbents',
+            median: 'Median Incumbents',
+            count: 'Task Count',
+            total: 'Total Incumbents',
+            gini: 'Gini Coefficient',
+            cv: 'CV',
+            std: 'Std Dev'
+        };
+
+        tooltip.innerHTML = `
+            <div class="tooltip-title">${d.name}</div>
+            <div class="tooltip-row"><span class="tooltip-label">${metricLabels[metric]}:</span><span class="tooltip-value">${formatValue(d[metric], metric)}</span></div>
+            ${d.count ? `<div class="tooltip-row"><span class="tooltip-label">Tasks:</span><span class="tooltip-value">${d.count.toLocaleString()}</span></div>` : ''}
+            ${d.mean ? `<div class="tooltip-row"><span class="tooltip-label">Mean:</span><span class="tooltip-value">${d.mean.toFixed(1)}</span></div>` : ''}
+        `;
+
+        const rect = event.target.getBoundingClientRect();
+        const container = document.getElementById('main-chart').getBoundingClientRect();
+
+        tooltip.style.left = `${rect.left - container.left + rect.width / 2}px`;
+        tooltip.style.top = `${rect.top - container.top - 10}px`;
+        tooltip.classList.add('visible');
+    }
+
+    function hideTooltip() {
+        document.getElementById('chart-tooltip').classList.remove('visible');
+    }
+
+    function formatValue(value, metric) {
+        if (value === undefined || value === null) return '--';
+        if (metric === 'gini') return value.toFixed(4);
+        if (metric === 'cv') return value.toFixed(3);
+        if (metric === 'std') return value.toFixed(1);
+        if (value >= 1000) return (value / 1000).toFixed(1) + 'k';
+        return Math.round(value).toLocaleString();
+    }
+
+    function generateInsights(data, metric, dimension) {
+        const insights = [];
+
+        if (data.length > 0) {
+            const max = data.reduce((a, b) => (a[metric] > b[metric] ? a : b));
+            const min = data.reduce((a, b) => (a[metric] < b[metric] ? a : b));
+            const avg = data.reduce((sum, d) => sum + d[metric], 0) / data.length;
+
+            insights.push({
+                icon: '📈',
+                text: `<strong>${max.name}</strong> has the highest value at <strong>${formatValue(max[metric], metric)}</strong>`
+            });
+
+            insights.push({
+                icon: '📉',
+                text: `<strong>${min.name}</strong> has the lowest value at <strong>${formatValue(min[metric], metric)}</strong>`
+            });
+
+            const ratio = max[metric] / min[metric];
+            if (ratio > 1) {
+                insights.push({
+                    icon: '⚖️',
+                    text: `The highest is <strong>${ratio.toFixed(1)}x</strong> greater than the lowest`
+                });
+            }
+
+            // Add context-specific insights
+            if (metric === 'gini') {
+                if (max[metric] > 0.3) {
+                    insights.push({
+                        icon: '⚠️',
+                        text: `High inequality detected: Gini > 0.3 indicates significant concentration of competition`
+                    });
+                }
+            }
+
+            if (dimension === 'task_type' && data.length === 2) {
+                const core = data.find(d => d.name === 'Core');
+                const supp = data.find(d => d.name === 'Supplemental');
+                if (core && supp) {
+                    const diff = ((supp[metric] - core[metric]) / core[metric] * 100).toFixed(1);
+                    insights.push({
+                        icon: '🔄',
+                        text: `Supplemental tasks are <strong>${diff}%</strong> ${diff > 0 ? 'higher' : 'lower'} than Core tasks`
+                    });
+                }
+            }
+        }
+
+        const insightsHtml = insights.map(i => `
+            <div class="insight-item">
+                <div class="insight-icon">${i.icon}</div>
+                <div>${i.text}</div>
+            </div>
+        `).join('');
+
+        document.getElementById('insights-list').innerHTML = insightsHtml || '<div class="insight-item">Select a visualization to see insights</div>';
+    }
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
