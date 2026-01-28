@@ -4,7 +4,7 @@ An interactive visualization platform for exploring the **Anthropic Economic Ind
 
 ## Live Demo
 
-**[Launch the Interactive Explorer →](https://pranavmehta-git.github.io/gaitkeep/home.html)**
+**[Launch the Interactive Explorer →](https://pranavmehta-git.github.io/gaitkeep/)**
 
 ## Features
 
@@ -37,7 +37,7 @@ cd gaitkeep
 # Serve the dashboard locally
 python -m http.server 8000 -d results/dashboard
 
-# Open http://localhost:8000/home.html
+# Open http://localhost:8000
 ```
 
 ### Regenerate Data
@@ -76,9 +76,9 @@ python src/generate_interactive_data.py
 ```
 gaitkeep/
 ├── results/dashboard/          # Interactive visualizations
-│   ├── home.html              # Landing page
+│   ├── index.html             # Landing page (entry point)
 │   ├── explorer.html          # Interactive data explorer
-│   ├── index.html             # Competition paradox dashboard
+│   ├── analysis.html          # Competition paradox dashboard
 │   ├── explorer_data.json     # Pre-computed metrics
 │   └── interactive_data.json  # Full interactive dataset
 ├── src/
