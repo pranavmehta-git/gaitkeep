@@ -1,0 +1,27 @@
+{
+  "n_records": 5000,
+  "n_occupations": 944,
+  "n_soc_major_groups": 22,
+  "collaboration_modes": {
+    "directive_mean": 0.42008106,
+    "task_iteration_mean": 0.31042865999999997,
+    "learning_mean": 0.25396598,
+    "feedback_mean": 0.01552258
+  },
+  "economic_primitives": {
+    "median_human_education": 14.4,
+    "median_ai_autonomy": 0.3343,
+    "median_task_success": 0.6535,
+    "median_speedup_factor": 11.21,
+    "median_human_ai_time": 4.4
+  },
+  "platform_split": {
+    "api": 2504,
+    "claude_ai": 2496
+  },
+  "use_case_split": {
+    "work": 2887,
+    "personal": 1189,
+    "education": 924
+  }
+}
