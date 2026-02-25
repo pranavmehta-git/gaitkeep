@@ -1,0 +1,82 @@
+# Configuration for Acemoglu-Autor Economic Model
+# Marrying the Acemoglu-Autor taxonomy with the Anthropic Economic Index (AEI v4)
+
+data:
+  # AEI v4 release
+  release: "release_2026_01_15"
+  repo_id: "Anthropic/EconomicIndex"
+
+  # Data file patterns (within release/data/)
+  files:
+    claude_ai: "aei_raw_claude_ai_*.csv"
+    api: "aei_raw_1p_api_*.csv"
+    onet_tasks: "onet_task_statements.csv"
+    soc_structure: "SOC_Structure.csv"
+    wage_data: "wage_data.csv"
+
+  # Use synthetic data when real data is unavailable
+  use_synthetic: true
+  synthetic_seed: 42
+  synthetic_n_tasks: 5000
+
+  # Paths
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  results_dir: "results/acemoglu_autor"
+
+# Model A: Expertise Commodification Index (ECI)
+eci:
+  # ECI_t = directive_share * task_success * ai_autonomy * (human_education / max_education)
+  normalize_education: true
+  weight_by_usage: true
+
+# Model B: Pro-Worker AI Score (PWAS)
+pwas:
+  # PWAS_o = alpha * learning_share + beta * task_iteration_share + gamma * (1 - ai_autonomy) * task_success
+  alpha: 0.333
+  beta: 0.333
+  gamma: 0.334
+
+# Model C: Pipeline Fragility Index
+fragility:
+  # Ratio of automation among low-complexity vs high-complexity tasks
+  complexity_threshold: "median"  # Use median education within occupation
+  min_directive_floor: 0.01  # Floor for denominator to avoid division by zero
+
+# Visualization settings
+visualization:
+  figure_dpi: 300
+  figure_format: "png"
+  style: "seaborn-v0_8-whitegrid"
+  palette: "viridis"
+  figsize_scatter: [10, 8]
+  figsize_bar: [14, 8]
+  figsize_heatmap: [12, 10]
+
+# Acemoglu-Autor category mapping
+taxonomy:
+  automating:
+    collaboration: "directive"
+    ai_autonomy: "high"
+    task_success: "high"
+    description: "AI does the task; human is dispensable"
+
+  labor_augmenting:
+    collaboration: "task_iteration"
+    ai_autonomy: "moderate"
+    description: "AI makes existing work faster/better"
+
+  expertise_leveling:
+    collaboration: "learning"
+    skill_gap: "high"
+    description: "AI lets juniors do senior work"
+
+  new_task_creating:
+    augmentation_share: "high"
+    pre_ai_feasibility: "low"
+    description: "AI enables work that wasn't done before"
+
+  capital_augmenting:
+    usage_pattern: "api_heavy"
+    human_in_loop: false
+    description: "Firms making existing capital stock more productive"

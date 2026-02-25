@@ -1,0 +1,236 @@
+{
+  "model_a_eci": {
+    "description": "Expertise Commodification Index",
+    "mean_eci": 0.06871607004901155,
+    "top_5_commodified": [
+      {
+        "title": "Mathematicians",
+        "ECI": 0.2740565424223622,
+        "soc_major": "15",
+        "median_annual_wage": 98000
+      },
+      {
+        "title": "Software Developers, Systems Software",
+        "ECI": 0.25930710258805345,
+        "soc_major": "15",
+        "median_annual_wage": 98000
+      },
+      {
+        "title": "Actuaries",
+        "ECI": 0.2583336102738921,
+        "soc_major": "15",
+        "median_annual_wage": 98000
+      },
+      {
+        "title": "Database Architects",
+        "ECI": 0.24842578605636678,
+        "soc_major": "15",
+        "median_annual_wage": 98000
+      },
+      {
+        "title": "Business Intelligence Analysts",
+        "ECI": 0.2482044425205732,
+        "soc_major": "15",
+        "median_annual_wage": 98000
+      }
+    ],
+    "bottom_5_commodified": [
+      {
+        "title": "Pump Operators, Except Wellhead Pumpers",
+        "ECI": 0.0033907376931818192,
+        "soc_major": "53",
+        "median_annual_wage": 38000
+      },
+      {
+        "title": "Ship and Boat Captains",
+        "ECI": 0.0043978056722440905,
+        "soc_major": "53",
+        "median_annual_wage": 38000
+      },
+      {
+        "title": "Solar Energy Installation Managers",
+        "ECI": 0.004626774727272727,
+        "soc_major": "47",
+        "median_annual_wage": 50000
+      },
+      {
+        "title": "Pesticide Handlers, Sprayers, and Applicators, Vegetation",
+        "ECI": 0.0050849696337533085,
+        "soc_major": "37",
+        "median_annual_wage": 32000
+      },
+      {
+        "title": "Helpers--Painters, Paperhangers, Plasterers, and Stucco Masons",
+        "ECI": 0.005425467777365788,
+        "soc_major": "47",
+        "median_annual_wage": 50000
+      }
+    ],
+    "eci_wage_correlation": 0.7515810621389175
+  },
+  "model_b_pwas": {
+    "description": "Pro-Worker AI Score",
+    "mean_pwas": 0.3341097002339202,
+    "top_5_pro_worker": [
+      {
+        "title": "Pest Control Workers",
+        "PWAS": 0.45531492640666665,
+        "soc_major": "37",
+        "median_annual_wage": 32000
+      },
+      {
+        "title": "Farmworkers and Laborers, Crop",
+        "PWAS": 0.44422721461799997,
+        "soc_major": "45",
+        "median_annual_wage": 35000
+      },
+      {
+        "title": "Freight and Cargo Inspectors",
+        "PWAS": 0.44335820735433334,
+        "soc_major": "53",
+        "median_annual_wage": 38000
+      },
+      {
+        "title": "First-Line Supervisors of Construction Trades and Extraction Workers",
+        "PWAS": 0.44180050259133335,
+        "soc_major": "47",
+        "median_annual_wage": 50000
+      },
+      {
+        "title": "Roofers",
+        "PWAS": 0.4400242258896666,
+        "soc_major": "47",
+        "median_annual_wage": 50000
+      }
+    ],
+    "pwas_higher_for_blue_collar": true
+  },
+  "model_c_fragility": {
+    "description": "Junior Pipeline Fragility Index",
+    "mean_fragility": 1.043209533898305,
+    "zone_distribution": {
+      "neutral": 247,
+      "ai_apprenticeship": 247,
+      "danger": 225,
+      "pro_worker": 225
+    },
+    "top_5_fragile": [
+      {
+        "title": "Model Makers, Metal and Plastic",
+        "pipeline_fragility": 5.4997,
+        "zone": "ai_apprenticeship",
+        "soc_major": "51"
+      },
+      {
+        "title": "Freight and Cargo Inspectors",
+        "pipeline_fragility": 5.0223,
+        "zone": "ai_apprenticeship",
+        "soc_major": "53"
+      },
+      {
+        "title": "Adhesive Bonding Machine Operators and Tenders",
+        "pipeline_fragility": 4.8818,
+        "zone": "ai_apprenticeship",
+        "soc_major": "51"
+      },
+      {
+        "title": "Dining Room and Cafeteria Attendants and Bartender Helpers",
+        "pipeline_fragility": 4.2146,
+        "zone": "ai_apprenticeship",
+        "soc_major": "35"
+      },
+      {
+        "title": "Layout Workers, Metal and Plastic",
+        "pipeline_fragility": 3.6317,
+        "zone": "ai_apprenticeship",
+        "soc_major": "51"
+      }
+    ],
+    "most_fragile_soc_groups": {
+      "51": 1.2263555555555556,
+      "45": 1.2116647058823529,
+      "31": 1.1867999999999999,
+      "53": 1.1728849056603774,
+      "35": 1.1299823529411765
+    }
+  },
+  "net_exposure": {
+    "description": "Net Exposure (ECI - PWAS)",
+    "class_distribution": {
+      "pro_worker": 923,
+      "neutral": 18,
+      "automation_risk": 3
+    },
+    "most_exposed": [
+      {
+        "title": "Actuaries",
+        "net_exposure": 0.05155882305789214,
+        "soc_major": "15"
+      },
+      {
+        "title": "Mathematicians",
+        "net_exposure": 0.050873088251695564,
+        "soc_major": "15"
+      },
+      {
+        "title": "Business Intelligence Analysts",
+        "net_exposure": 0.05010759043357321,
+        "soc_major": "15"
+      },
+      {
+        "title": "Operations Research Analysts",
+        "net_exposure": 0.048394064150060145,
+        "soc_major": "15"
+      },
+      {
+        "title": "Database Architects",
+        "net_exposure": 0.0473044242713668,
+        "soc_major": "15"
+      }
+    ],
+    "most_protected": [
+      {
+        "title": "Pest Control Workers",
+        "net_exposure": -0.4481608894659041,
+        "soc_major": "37"
+      },
+      {
+        "title": "Freight and Cargo Inspectors",
+        "net_exposure": -0.43618872586385266,
+        "soc_major": "53"
+      },
+      {
+        "title": "Farmworkers and Laborers, Crop",
+        "net_exposure": -0.43412549526426225,
+        "soc_major": "45"
+      },
+      {
+        "title": "Roofers",
+        "net_exposure": -0.4320426691817543,
+        "soc_major": "47"
+      },
+      {
+        "title": "First-Line Supervisors of Construction Trades and Extraction Workers",
+        "net_exposure": -0.4276476778445756,
+        "soc_major": "47"
+      }
+    ]
+  },
+  "acemoglu_autor_predictions": {
+    "prediction_1": {
+      "claim": "High-ECI occupations should correlate with lower wages",
+      "result": 0.7515810621389175,
+      "note": "Positive/negative correlation with wage level"
+    },
+    "prediction_2": {
+      "claim": "PWAS should be higher for blue-collar than white-collar",
+      "blue_collar_pwas": 0.3804752370549551,
+      "white_collar_pwas": 0.26464409607984285
+    },
+    "prediction_3": {
+      "claim": "Pipeline fragility highest in professional services",
+      "professional_fragility": 1.030721052631579,
+      "trades_fragility": 1.0890131578947368
+    }
+  }
+}
